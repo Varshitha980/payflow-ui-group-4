@@ -12,12 +12,21 @@ const ManagerDashboard = () => {
   const [projects, setProjects] = useState([]);
   const [showNewProject, setShowNewProject] = useState(false);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
-  const [form, setForm] = useState({
+  const [step, setStep] = useState(1);
+  const [personal, setPersonal] = useState({
     name: '',
     email: '',
     department: '',
     position: '',
-    startDate: ''
+    startDate: '',
+    phone: '',
+    address: ''
+  });
+  const [education, setEducation] = useState({
+    degree: '',
+    university: '',
+    year: '',
+    grade: ''
   });
   const [projectForm, setProjectForm] = useState({
     name: '',
@@ -48,14 +57,17 @@ const ManagerDashboard = () => {
 
   const handleAddEmployee = async () => {
     try {
+      const payload = { ...personal, education: { ...education } };
       const res = await fetch('http://localhost:8080/api/employees/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
-        setForm({ name: '', email: '', department: '', position: '', startDate: '' });
+        setPersonal({ name: '', email: '', department: '', position: '', startDate: '', phone: '', address: '' });
+        setEducation({ degree: '', university: '', year: '', grade: '' });
         setShowAddEmployee(false);
+        setStep(1);
         loadEmployees();
       } else {
         alert('Failed to add employee');
@@ -207,75 +219,134 @@ const ManagerDashboard = () => {
               <h3>Add New Employee</h3>
               <button 
                 className="modal-close"
-                onClick={() => setShowAddEmployee(false)}
+                onClick={() => { setShowAddEmployee(false); setStep(1); }}
               >
                 ×
               </button>
             </div>
             <div className="modal-body">
-              <div className="form-group">
-                <label>Full Name</label>
-                <input
-                  type="text"
-                  placeholder="Enter full name"
-                  value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>Email</label>
-                <input
-                  type="email"
-                  placeholder="Enter email address"
-                  value={form.email}
-                  onChange={e => setForm({ ...form, email: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>Department</label>
-                <select
-                  value={form.department}
-                  onChange={e => setForm({ ...form, department: e.target.value })}
-                >
-                  <option value="">Select Department</option>
-                  <option value="Engineering">Engineering</option>
-                  <option value="Marketing">Marketing</option>
-                  <option value="Sales">Sales</option>
-                  <option value="HR">HR</option>
-                  <option value="Finance">Finance</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Position</label>
-                <input
-                  type="text"
-                  placeholder="Enter position"
-                  value={form.position}
-                  onChange={e => setForm({ ...form, position: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>Start Date</label>
-                <input
-                  type="date"
-                  value={form.startDate}
-                  onChange={e => setForm({ ...form, startDate: e.target.value })}
-                />
-              </div>
+              {step === 1 && (
+                <>
+                  <div className="form-group">
+                    <label>Full Name</label>
+                    <input
+                      type="text"
+                      placeholder="Enter full name"
+                      value={personal.name}
+                      onChange={e => setPersonal({ ...personal, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Email</label>
+                    <input
+                      type="email"
+                      placeholder="Enter email address"
+                      value={personal.email}
+                      onChange={e => setPersonal({ ...personal, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Phone</label>
+                    <input
+                      type="tel"
+                      placeholder="Enter phone number"
+                      value={personal.phone}
+                      onChange={e => setPersonal({ ...personal, phone: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Address</label>
+                    <input
+                      type="text"
+                      placeholder="Enter address"
+                      value={personal.address}
+                      onChange={e => setPersonal({ ...personal, address: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Department</label>
+                    <select
+                      value={personal.department}
+                      onChange={e => setPersonal({ ...personal, department: e.target.value })}
+                    >
+                      <option value="">Select Department</option>
+                      <option value="Engineering">Engineering</option>
+                      <option value="Marketing">Marketing</option>
+                      <option value="Sales">Sales</option>
+                      <option value="HR">HR</option>
+                      <option value="Finance">Finance</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Position</label>
+                    <input
+                      type="text"
+                      placeholder="Enter position"
+                      value={personal.position}
+                      onChange={e => setPersonal({ ...personal, position: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Start Date</label>
+                    <input
+                      type="date"
+                      value={personal.startDate}
+                      onChange={e => setPersonal({ ...personal, startDate: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
+              {step === 2 && (
+                <>
+                  <div className="form-group">
+                    <label>Degree</label>
+                    <input
+                      type="text"
+                      placeholder="Enter degree"
+                      value={education.degree}
+                      onChange={e => setEducation({ ...education, degree: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>University</label>
+                    <input
+                      type="text"
+                      placeholder="Enter university"
+                      value={education.university}
+                      onChange={e => setEducation({ ...education, university: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Year</label>
+                    <input
+                      type="number"
+                      placeholder="Enter year of graduation"
+                      value={education.year}
+                      onChange={e => setEducation({ ...education, year: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Grade</label>
+                    <input
+                      type="text"
+                      placeholder="Enter grade/percentage"
+                      value={education.grade}
+                      onChange={e => setEducation({ ...education, grade: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
             </div>
             <div className="modal-footer">
-              <button 
-                className="btn-secondary"
-                onClick={() => setShowAddEmployee(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className="btn-primary"
-                onClick={handleAddEmployee}
-              >
-                Add Employee
-              </button>
+              {step === 2 && (
+                <button className="btn-secondary" onClick={() => setStep(1)}>Back</button>
+              )}
+              {step === 1 && (
+                <button className="btn-primary" onClick={() => setStep(2)}>Next</button>
+              )}
+              {step === 2 && (
+                <button className="btn-primary" onClick={handleAddEmployee}>Add Employee</button>
+              )}
             </div>
           </div>
         </div>
