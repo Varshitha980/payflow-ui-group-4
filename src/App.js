@@ -10,6 +10,7 @@ import ManagerDashboard from './components/ManagerDashboard';
 import EmployeeForm from './components/EmployeeForm';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import Layout from './components/Layout';
+import EmployeesList from './components/EmployeesList';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -50,6 +51,10 @@ function App() {
           <Route
             path="/admin/users"
             element={user.role === 'ADMIN' ? <AdminDashboard /> : <Unauthorized />}
+          />
+          <Route
+            path="/admin/users-list"
+            element={user.role === 'ADMIN' ? <EmployeesList /> : <Unauthorized />}
           />
           <Route
             path="/hr"

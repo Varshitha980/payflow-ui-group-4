@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import API from '../api';
+import { useNavigate } from 'react-router-dom';
+import EmployeesList from './EmployeesList';
+
+const USERS_PER_PAGE = 10;
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -12,6 +16,9 @@ const AdminDashboard = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [form, setForm] = useState({ username: '', password: '', role: 'HR' });
   const [msg, setMsg] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadUsers();
@@ -21,12 +28,13 @@ const AdminDashboard = () => {
     try {
       const res = await fetch('http://localhost:8080/api/users');
       const data = await res.json();
-      setUsers(data);
+      const nonAdminUsers = data.filter(u => u.role !== 'ADMIN');
+      setUsers(nonAdminUsers);
       setStats({
-        totalUsers: data.filter(u => u.status === 'Active').length,
-        totalHR: data.filter(u => u.role === 'HR').length,
-        totalManagers: data.filter(u => u.role === 'MANAGER').length,
-        disabledUsers: data.filter(u => u.status === 'Disabled').length
+        totalUsers: nonAdminUsers.filter(u => u.status && u.status.toLowerCase() === 'active').length,
+        totalHR: nonAdminUsers.filter(u => u.role === 'HR').length,
+        totalManagers: nonAdminUsers.filter(u => u.role === 'MANAGER').length,
+        disabledUsers: nonAdminUsers.filter(u => u.status && u.status.toLowerCase() === 'disabled').length
       });
     } catch (error) {
       console.error('Error loading users:', error);
@@ -48,11 +56,13 @@ const AdminDashboard = () => {
   const toggleUserStatus = async (userId, currentStatus) => {
     try {
       const newStatus = currentStatus === 'Active' ? 'Disabled' : 'Active';
-      // await API.put(`/users/${userId}/status`, { status: newStatus });
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, status: newStatus } : user
-      ));
+      await fetch(`http://localhost:8080/api/users/${userId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
       setMsg(`User status updated to ${newStatus}`);
+      loadUsers();
     } catch {
       setMsg('Error updating user status');
     }
@@ -66,6 +76,26 @@ const AdminDashboard = () => {
       day: 'numeric'
     });
   };
+
+  // Filter users by search string (case-insensitive)
+  const filteredUsers = users.filter(user =>
+    user.username && user.username.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE) || 1;
+  const paginatedUsers = filteredUsers.slice((page - 1) * USERS_PER_PAGE, page * USERS_PER_PAGE);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage);
+    }
+  };
+
+  useEffect(() => {
+    // Reset to first page if search changes
+    setPage(1);
+  }, [search]);
 
   return (
     <div className="dashboard">
@@ -158,23 +188,23 @@ const AdminDashboard = () => {
               type="text" 
               placeholder="Search users..." 
               className="search-input"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
             />
-            <button className="btn-secondary">Export</button>
           </div>
         </div>
         <div className="table-container">
-          <table className="data-table">
+          <table className="data-table" style={{ fontSize: '22px' }}>
             <thead>
               <tr>
                 <th>Username</th>
                 <th>Role</th>
-                <th>Email</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {users.map(user => (
+              {paginatedUsers.map(user => (
                 <tr key={user.id}>
                   <td>{user.username || user.name}</td>
                   <td>
@@ -182,7 +212,6 @@ const AdminDashboard = () => {
                       {user.role}
                     </span>
                   </td>
-                  <td>{user.email}</td>
                   <td>
                     <span className={`status-badge ${user.status ? user.status.toLowerCase() : ''}`}>
                       {user.status || 'Active'}
@@ -214,7 +243,60 @@ const AdminDashboard = () => {
             </tbody>
           </table>
         </div>
-      </div>
+       {/* Pagination Controls */}
+       <div className="custom-pagination" style={{
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginTop: 20,
+  gap: 4
+}}>
+  <button
+    onClick={() => handlePageChange(1)}
+    disabled={page === 1}
+    className="page-btn"
+  >&laquo;</button>
+  <button
+    onClick={() => handlePageChange(page - 1)}
+    disabled={page === 1}
+    className="page-btn"
+  >&lt;</button>
+  {Array.from({ length: totalPages }, (_, i) => {
+    const pageNum = i + 1;
+    if (
+      pageNum === 1 ||
+      pageNum === totalPages ||
+      Math.abs(page - pageNum) <= 1
+    ) {
+      return (
+        <button
+          key={pageNum}
+          onClick={() => handlePageChange(pageNum)}
+          className={`page-btn${page === pageNum ? ' active' : ''}`}
+        >
+          {pageNum}
+        </button>
+      );
+    } else if (
+      (pageNum === 2 && page > 3) ||
+      (pageNum === totalPages - 1 && page < totalPages - 2)
+    ) {
+      return <span key={pageNum} style={{ padding: '0 4px' }}>...</span>;
+    }
+    return null;
+  })}
+  <button
+    onClick={() => handlePageChange(page + 1)}
+    disabled={page === totalPages}
+    className="page-btn"
+  >&gt;</button>
+  <button
+    onClick={() => handlePageChange(totalPages)}
+    disabled={page === totalPages}
+    className="page-btn"
+  >&raquo;</button>
+</div>
+</div>
 
       {/* Create User Modal */}
       {showCreateForm && (

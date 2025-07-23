@@ -34,6 +34,12 @@ const ManagerDashboard = () => {
     deadline: '',
     priority: 'Medium'
   });
+  const [experiences, setExperiences] = useState([
+    { company: '', role: '', years: '', description: '' }
+  ]);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const EMPLOYEES_PER_PAGE = 10;
 
   useEffect(() => {
     loadEmployees();
@@ -43,6 +49,7 @@ const ManagerDashboard = () => {
     try {
       const res = await fetch('http://localhost:8080/api/employees');
       const data = await res.json();
+      console.log('Fetched employees:', data);
       setEmployees(data);
       setStats({
         teamSize: data.length,
@@ -57,7 +64,7 @@ const ManagerDashboard = () => {
 
   const handleAddEmployee = async () => {
     try {
-      const payload = { ...personal, education: { ...education } };
+      const payload = { ...personal, leaves: 12, experiences, education: { ...education } };
       const res = await fetch('http://localhost:8080/api/employees/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -85,6 +92,15 @@ const ManagerDashboard = () => {
       { metric: 'Meeting Attendance', value: '98%', trend: 'up' }
     ];
   };
+
+  // Filter employees by name or email (case-insensitive)
+  const filteredEmployees = employees.filter(emp =>
+    (emp.name && emp.name.toLowerCase().includes(search.toLowerCase())) ||
+    (emp.email && emp.email.toLowerCase().includes(search.toLowerCase()))
+  );
+  // Pagination
+  const totalPages = Math.ceil(filteredEmployees.length / EMPLOYEES_PER_PAGE) || 1;
+  const paginatedEmployees = filteredEmployees.slice((page - 1) * EMPLOYEES_PER_PAGE, page * EMPLOYEES_PER_PAGE);
 
   return (
     <div className="dashboard">
@@ -136,6 +152,8 @@ const ManagerDashboard = () => {
                   type="text" 
                   placeholder="Search team members..." 
                   className="search-input"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
                 />
                 <button className="btn-primary" onClick={() => setShowAddEmployee(true)}>
                   ➕ Add Employee
@@ -148,20 +166,16 @@ const ManagerDashboard = () => {
                   <tr>
                     <th>Name</th>
                     <th>Email</th>
-                    <th>Department</th>
-                    <th>Position</th>
                     <th>Status</th>
                     <th>Start Date</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {employees.map(employee => (
+                  {paginatedEmployees.map(employee => (
                     <tr key={employee.id}>
                       <td>{employee.name}</td>
                       <td>{employee.email}</td>
-                      <td>{employee.department}</td>
-                      <td>{employee.position}</td>
                       <td>
                         <span className={`status-badge ${employee.status ? employee.status.toLowerCase() : ''}`}>
                           {employee.status || 'Active'}
@@ -171,14 +185,21 @@ const ManagerDashboard = () => {
                       <td>
                         <div className="action-buttons">
                           <button className="btn-secondary small">View</button>
-                          <button className="btn-secondary small">Review</button>
-                          <button className="btn-secondary small">Message</button>
+                          <button className="btn-secondary small">Reset</button>
+                          <button className="btn-secondary small">Edit</button>
                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: 20, fontSize: '16px', width: '100%' }}>
+                  <button style={{ fontSize: '12px', padding: '2px 8px', minWidth: 0 }} onClick={() => setPage(prev => Math.max(1, prev - 1))}>&lt;</button>
+                  <span style={{ margin: '0 10px', fontSize: '14px' }}>Page {page} of {totalPages}</span>
+                  <button style={{ fontSize: '12px', padding: '2px 8px', minWidth: 0 }} onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}>&gt;</button>
+                </div>
+              )}
             </div>
           </div>
           {/* Project Management section remains unchanged */}
@@ -214,7 +235,7 @@ const ManagerDashboard = () => {
       </div>
       {showAddEmployee && (
         <div className="modal-overlay">
-          <div className="modal">
+          <div className="modal" style={{ maxWidth: 900 }}>
             <div className="modal-header">
               <h3>Add New Employee</h3>
               <button 
@@ -333,6 +354,61 @@ const ManagerDashboard = () => {
                       value={education.grade}
                       onChange={e => setEducation({ ...education, grade: e.target.value })}
                     />
+                  </div>
+                  <div className="form-group">
+                    <label>Past Experience</label>
+                    {experiences.map((exp, idx) => (
+                      <div key={idx} style={{ marginBottom: 10, border: '1px solid #eee', borderRadius: 8, padding: 10 }}>
+                        <input
+                          type="text"
+                          placeholder="Company"
+                          value={exp.company}
+                          onChange={e => {
+                            const arr = [...experiences];
+                            arr[idx].company = e.target.value;
+                            setExperiences(arr);
+                          }}
+                          style={{ marginRight: 8 }}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Role/Designation"
+                          value={exp.role}
+                          onChange={e => {
+                            const arr = [...experiences];
+                            arr[idx].role = e.target.value;
+                            setExperiences(arr);
+                          }}
+                          style={{ marginRight: 8 }}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Years"
+                          value={exp.years}
+                          onChange={e => {
+                            const arr = [...experiences];
+                            arr[idx].years = e.target.value;
+                            setExperiences(arr);
+                          }}
+                          style={{ marginRight: 8, width: 80 }}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Description"
+                          value={exp.description}
+                          onChange={e => {
+                            const arr = [...experiences];
+                            arr[idx].description = e.target.value;
+                            setExperiences(arr);
+                          }}
+                          style={{ marginRight: 8 }}
+                        />
+                        {experiences.length > 1 && (
+                          <button type="button" style={{ fontSize: 18, color: 'red', marginLeft: 4 }} onClick={() => setExperiences(experiences.filter((_, i) => i !== idx))}>–</button>
+                        )}
+                      </div>
+                    ))}
+                    <button type="button" style={{ fontSize: 22, marginTop: 4 }} onClick={() => setExperiences([...experiences, { company: '', role: '', years: '', description: '' }])}>+ Add Experience</button>
                   </div>
                 </>
               )}

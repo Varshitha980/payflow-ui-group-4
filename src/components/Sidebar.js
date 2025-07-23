@@ -12,7 +12,7 @@ const Sidebar = ({ user }) => {
     if (user?.role === 'ADMIN') {
       return [
         { path: '/admin', icon: '🏠', label: 'Dashboard', sublabel: 'Home' },
-        { path: '/admin/users', icon: '👥', label: 'Manage Users', sublabel: 'HR & Managers' },
+        { path: '/admin/users-list', icon: '👥', label: 'Manage Users', sublabel: 'HR & Managers' },
         { path: '/admin/reports', icon: '📊', label: 'Reports', sublabel: 'Analytics' },
         { path: '/admin/settings', icon: '⚙️', label: 'Settings', sublabel: 'System Config' }
       ];
