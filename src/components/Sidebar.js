@@ -27,6 +27,7 @@ const Sidebar = ({ user }) => {
       return [
         { path: '/manager', icon: '🏠', label: 'Dashboard', sublabel: 'Home' },
         { path: '/manager/team', icon: '👥', label: 'My Team', sublabel: 'Team Members' },
+        { path: '/manager/leaves', icon: '📝', label: 'Leave Requests', sublabel: 'Requests' },
         { path: '/manager/projects', icon: '📋', label: 'Projects', sublabel: 'Task Management' },
         { path: '/manager/reports', icon: '📊', label: 'Reports', sublabel: 'Team Analytics' }
       ];

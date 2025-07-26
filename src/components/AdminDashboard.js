@@ -43,7 +43,7 @@ const AdminDashboard = () => {
 
   const handleCreate = async () => {
     try {
-      await API.post('/create', form);
+      await API.post('/users/create', form);
       setMsg(`User "${form.username}" created successfully!`);
       setForm({ username: '', password: '', role: 'HR' });
       setShowCreateForm(false);

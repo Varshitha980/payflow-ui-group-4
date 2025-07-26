@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 
@@ -7,6 +7,7 @@ import LoginPage from './components/LoginPage';
 import AdminDashboard from './components/AdminDashboard';
 import HRDashboard from './components/HRDashboard';
 import ManagerDashboard from './components/ManagerDashboard';
+import EmployeeDashboard from './components/EmployeeDashboard';
 import EmployeeForm from './components/EmployeeForm';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import Layout from './components/Layout';
@@ -32,11 +33,41 @@ function App() {
     </>
   );
 
-  if (user.firstLogin && user.role !== 'ADMIN') {
+  // First login password reset for all roles
+  if (user.firstLogin) {
+    // Log the full user object for debugging
+    console.log('App.js user object for firstLogin:', user);
+    // Pass 'id' for employees, 'username' for others
+    if (user.role === 'EMPLOYEE') {
+      if (!user.id) {
+        return <div style={{color:'red',padding:20}}>Error: No employee id found in user object. Please check backend /employees/login response. User: {JSON.stringify(user)}</div>;
+      }
+      return (
+        <>
+          <ResetPasswordPage id={user.id} onReset={handleLogout} />
+        </>
+      );
+    } else {
+      return (
+        <>
+          <ResetPasswordPage username={user.username} onReset={handleLogout} />
+        </>
+      );
+    }
+  }
+
+  // Employee dashboard route
+  if (user.role === 'EMPLOYEE') {
     return (
-      <>
-        <ResetPasswordPage username={user.username} onReset={handleLogout} />
-      </>
+      <Router>
+        <Routes>
+          <Route
+            path="/employee/dashboard"
+            element={<EmployeeDashboard employeeId={user.id} employeeName={user.name} onLogout={handleLogout} />}
+          />
+          <Route path="*" element={<Navigate to="/employee/dashboard" />} />
+        </Routes>
+      </Router>
     );
   }
 
@@ -71,6 +102,10 @@ function App() {
           <Route
             path="/manager/team"
             element={user.role === 'MANAGER' ? <ManagerDashboard /> : <Unauthorized />}
+          />
+          <Route
+            path="/manager/leaves"
+            element={user.role === 'MANAGER' ? <ManagerDashboard initialNav="leaves" /> : <Unauthorized />}
           />
           <Route
             path="/employee"
