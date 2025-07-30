@@ -44,6 +44,7 @@ const ManagerDashboard = () => {
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [leavePage, setLeavePage] = useState(1);
   const LEAVES_PER_PAGE = 10;
+  const [processingLeave, setProcessingLeave] = useState(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -55,7 +56,7 @@ const ManagerDashboard = () => {
 
   const loadEmployees = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/employees');
+      const res = await fetch('http://localhost:8081/api/employees');
       const data = await res.json();
       console.log('Fetched employees:', data);
       setEmployees(data);
@@ -73,7 +74,7 @@ const ManagerDashboard = () => {
   const handleAddEmployee = async () => {
     try {
       const payload = { ...personal, leaves: 12, experiences, education: { ...education } };
-      const res = await fetch('http://localhost:8080/api/employees/create', {
+      const res = await fetch('http://localhost:8081/api/employees/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -94,11 +95,35 @@ const ManagerDashboard = () => {
 
   const fetchLeaveRequests = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/leaves');
+      const res = await fetch('http://localhost:8081/api/leaves');
       const data = await res.json();
       setLeaveRequests(Array.isArray(data) ? data : []);
     } catch (e) {
       setLeaveRequests([]);
+    }
+  };
+
+  const handleLeaveAction = async (leaveId, status) => {
+    setProcessingLeave(leaveId);
+    try {
+      // Use the correct endpoints for approval/rejection
+      const endpoint = status === 'APPROVED' ? 'approve' : 'reject';
+      const res = await fetch(`http://localhost:8081/api/leaves/${leaveId}/${endpoint}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res.ok) {
+        const result = await res.json();
+        alert(`Leave request ${status.toLowerCase()}! Email notification sent to employee.`);
+        fetchLeaveRequests();
+      } else {
+        alert('Failed to update leave status.');
+      }
+    } catch (error) {
+      console.error('Error updating leave status:', error);
+      alert('Network error');
+    } finally {
+      setProcessingLeave(null);
     }
   };
 
@@ -480,6 +505,31 @@ const ManagerDashboard = () => {
                         <td>{lr.reason}</td>
                         <td>
                           <span className={`status-badge ${lr.status ? lr.status.toLowerCase() : ''}`}>{lr.status}</span>
+                          {lr.status === 'PENDING' && (
+                            <div className="action-buttons" style={{ marginTop: 8 }}>
+                              <button
+                                className="btn-success small"
+                                onClick={() => handleLeaveAction(lr.id, 'APPROVED')}
+                                disabled={processingLeave === lr.id}
+                              >
+                                {processingLeave === lr.id ? '⏳' : '✅ Approve'}
+                              </button>
+                              <button
+                                className="btn-danger small"
+                                onClick={() => handleLeaveAction(lr.id, 'REJECTED')}
+                                style={{ marginLeft: 8 }}
+                                disabled={processingLeave === lr.id}
+                              >
+                                {processingLeave === lr.id ? '⏳' : '❌ Reject'}
+                              </button>
+                            </div>
+                          )}
+                          {lr.status === 'APPROVED' && (
+                            <div style={{ color: '#28a745', fontSize: 13, marginTop: 8 }}>Approved</div>
+                          )}
+                          {lr.status === 'REJECTED' && (
+                            <div style={{ color: '#dc3545', fontSize: 13, marginTop: 8 }}>Rejected</div>
+                          )}
                         </td>
                       </tr>
                     ))

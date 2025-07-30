@@ -38,7 +38,7 @@ const HRDashboard = () => {
 
   const loadEmployees = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/employees');
+      const res = await fetch('http://localhost:8081/api/employees');
       const data = await res.json();
       console.log('Fetched employees:', data);
       setEmployees(data);
@@ -55,7 +55,7 @@ const HRDashboard = () => {
   const handleAddEmployee = async () => {
     try {
       const payload = { ...personal, leaves: 12, experiences, education: { ...education } };
-      const res = await fetch('http://localhost:8080/api/employees/create', {
+      const res = await fetch('http://localhost:8081/api/employees/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

@@ -13,7 +13,7 @@ const EmployeesList = () => {
 
   const loadUsers = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/employees');
+      const res = await fetch('http://localhost:8081/api/employees');
       const data = await res.json();
       console.log('Fetched users:', data);
       // Only show HR and MANAGER

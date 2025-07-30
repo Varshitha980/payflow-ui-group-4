@@ -1,18 +1,33 @@
 import React, { useState } from 'react';
 import API from '../api';
 
-const ResetPasswordPage = ({ id, onReset }) => {
+const ResetPasswordPage = ({ id, username, onReset }) => {
   const [newPassword, setNewPassword] = useState('');
   const [done, setDone] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  console.log("ResetPasswordPage received id:", id);
+  console.log("ResetPasswordPage received id:", id, "username:", username);
 
   const handleReset = async () => {
     try {
-      // Log the payload and URL for debugging
-      console.log('Reset password URL:', '/employees/reset-password');
-      console.log('Reset payload:', { id, newPassword });
-      await API.post('/employees/reset-password', { id, newPassword });
+      let endpoint, payload;
+      
+      if (id) {
+        // Employee password reset
+        endpoint = '/employees/reset-password';
+        payload = { id, newPassword };
+        console.log('Employee reset password URL:', endpoint);
+        console.log('Employee reset payload:', payload);
+      } else if (username) {
+        // User (Manager/HR) password reset
+        endpoint = '/users/reset-password';
+        payload = { username, newPassword };
+        console.log('User reset password URL:', endpoint);
+        console.log('User reset payload:', payload);
+      } else {
+        throw new Error('Neither id nor username provided');
+      }
+      
+      await API.post(endpoint, payload);
       setDone(true);
       onReset();
     } catch (error) {

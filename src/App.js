@@ -48,6 +48,10 @@ function App() {
         </>
       );
     } else {
+      // For MANAGER, HR, ADMIN roles
+      if (!user.username) {
+        return <div style={{color:'red',padding:20}}>Error: No username found in user object. Please check backend /users/login response. User: {JSON.stringify(user)}</div>;
+      }
       return (
         <>
           <ResetPasswordPage username={user.username} onReset={handleLogout} />

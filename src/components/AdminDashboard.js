@@ -26,7 +26,7 @@ const AdminDashboard = () => {
 
   const loadUsers = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/users');
+      const res = await fetch('http://localhost:8081/api/users');
       const data = await res.json();
       const nonAdminUsers = data.filter(u => u.role !== 'ADMIN');
       setUsers(nonAdminUsers);
@@ -56,7 +56,7 @@ const AdminDashboard = () => {
   const toggleUserStatus = async (userId, currentStatus) => {
     try {
       const newStatus = currentStatus === 'Active' ? 'Disabled' : 'Active';
-      await fetch(`http://localhost:8080/api/users/${userId}/status`, {
+              await fetch(`http://localhost:8081/api/users/${userId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
