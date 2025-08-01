@@ -12,24 +12,22 @@ const Sidebar = ({ user }) => {
     if (user?.role === 'ADMIN') {
       return [
         { path: '/admin', icon: '🏠', label: 'Dashboard', sublabel: 'Home' },
-        { path: '/admin/users-list', icon: '👥', label: 'Manage Users', sublabel: 'HR & Managers' },
-        { path: '/admin/reports', icon: '📊', label: 'Reports', sublabel: 'Analytics' },
+        { path: '/admin/manage-users', icon: '👥', label: 'Manage Users', sublabel: 'HR & Managers' },
+        { path: '/admin/summary', icon: '📈', label: 'Summary', sublabel: 'Analytics & Charts' },
         { path: '/admin/settings', icon: '⚙️', label: 'Settings', sublabel: 'System Config' }
       ];
     } else if (user?.role === 'HR') {
       return [
         { path: '/hr', icon: '🏠', label: 'Dashboard', sublabel: 'Home' },
-        { path: '/hr/employees', icon: '👥', label: 'Employees', sublabel: 'Manage Staff' },
-        { path: '/hr/onboarding', icon: '🆕', label: 'Onboarding', sublabel: 'New Hires' },
-        { path: '/hr/reports', icon: '📊', label: 'Reports', sublabel: 'HR Analytics' }
+        { path: '/hr/employees', icon: '👥', label: 'All Employees', sublabel: 'Employee List' },
+        { path: '/hr/summary', icon: '📈', label: 'Summary', sublabel: 'Analytics & Charts' }
       ];
     } else if (user?.role === 'MANAGER') {
       return [
         { path: '/manager', icon: '🏠', label: 'Dashboard', sublabel: 'Home' },
         { path: '/manager/team', icon: '👥', label: 'My Team', sublabel: 'Team Members' },
         { path: '/manager/leaves', icon: '📝', label: 'Leave Requests', sublabel: 'Requests' },
-        { path: '/manager/projects', icon: '📋', label: 'Projects', sublabel: 'Task Management' },
-        { path: '/manager/reports', icon: '📊', label: 'Reports', sublabel: 'Team Analytics' }
+        { path: '/manager/summary', icon: '📊', label: 'Summary', sublabel: 'Team Analytics' }
       ];
     }
     return [];
@@ -41,18 +39,6 @@ const Sidebar = ({ user }) => {
         <div className="sidebar-logo">
           <span className="logo-icon">🏢</span>
           <span className="logo-text">PayFlow</span>
-        </div>
-        <div className="user-info">
-          <div className="user-avatar">
-            <img 
-              src={`https://ui-avatars.com/api/?name=${user?.name || user?.username || 'User'}&background=007bff&color=fff&size=32`} 
-              alt="User" 
-            />
-          </div>
-          <div className="user-details">
-            <div className="user-name">{user?.name || user?.username || 'User'}</div>
-            <div className="user-role">{user?.role || 'User'}</div>
-          </div>
         </div>
       </div>
 
@@ -76,27 +62,16 @@ const Sidebar = ({ user }) => {
         <div className="quick-actions">
           <h4>Quick Actions</h4>
           {user?.role === 'ADMIN' && (
-            <button className="quick-action-btn">
+            <Link to="/admin/manage-users" className="quick-action-btn">
               <span>🔐</span>
               <span>Create User</span>
-            </button>
+            </Link>
           )}
-          {user?.role === 'HR' && (
-            <>
-              <button className="quick-action-btn">
-                <span>➕</span>
-                <span>Add Employee</span>
-              </button>
-              <button className="quick-action-btn">
-                <span>📥</span>
-                <span>Import CSV</span>
-              </button>
-            </>
-          )}
+
           {user?.role === 'MANAGER' && (
             <button className="quick-action-btn">
-              <span>📋</span>
-              <span>New Project</span>
+              <span>👥</span>
+              <span>View Team</span>
             </button>
           )}
         </div>

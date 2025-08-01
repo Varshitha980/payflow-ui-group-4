@@ -56,24 +56,10 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
   const handleApply = async (e) => {
     e.preventDefault();
     
-    // Check if user has remaining leaves
-    if (remainingLeaves <= 0) {
-      setMsg('❌ You have no remaining leaves. Cannot apply for leave.');
-      setTimeout(() => setMsg(''), 3000);
-      return;
-    }
-    
     // Calculate days for this request
     const startDate = new Date(form.startDate);
     const endDate = new Date(form.endDate);
     const requestDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-    
-    // Check if this request would exceed remaining leaves
-    if (requestDays > remainingLeaves) {
-      setMsg(`❌ You only have ${remainingLeaves} leave(s) remaining, but you're requesting ${requestDays} day(s).`);
-      setTimeout(() => setMsg(''), 3000);
-      return;
-    }
     
     // Check for duplicate leave applications
     const hasDuplicate = leaveRequests.some(lr => {
@@ -94,6 +80,20 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
       setMsg('❌ You have already applied for leave during this period. Please check your leave history.');
       setTimeout(() => setMsg(''), 3000);
       return;
+    }
+    
+    // Show warning if applying with insufficient leave balance
+    if (remainingLeaves < requestDays) {
+      const excessDays = requestDays - remainingLeaves;
+      const confirmApply = window.confirm(
+        `⚠️  Warning: You only have ${remainingLeaves} days of leave balance remaining, but you're requesting ${requestDays} days.\n\n` +
+        `This will result in ${excessDays} day(s) of salary deduction.\n\n` +
+        `Do you want to proceed with the leave application?`
+      );
+      
+      if (!confirmApply) {
+        return;
+      }
     }
     
     try {
@@ -128,8 +128,10 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
   const paginatedLeaves = leaveRequests.slice((page - 1) * LEAVES_PER_PAGE, page * LEAVES_PER_PAGE);
 
   const totalLeaves = leaveBalance; // Use the leave balance from database
-  // Show count of approved requests (not total days)
-  const usedLeaves = leaveRequests.filter(lr => lr.status === 'APPROVED').length;
+  // Calculate used leaves based on actual days
+  const usedLeaves = leaveRequests
+    .filter(lr => lr.status === 'APPROVED')
+    .reduce((total, lr) => total + (lr.days || 1), 0); // Use days field, fallback to 1
   const pendingLeaves = leaveRequests.filter(lr => lr.status === 'PENDING').length;
   const remainingLeaves = totalLeaves - usedLeaves;
 
@@ -319,7 +321,7 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
         }}>
           <div>
             <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>
-              {activeTab === 'overview' && '📊 Dashboard'}
+              {activeTab === 'overview' && `Welcome ${employeeName || 'Employee'}`}
               {activeTab === 'history' && '📋 Leave History'}
               {activeTab === 'apply' && '📝 Apply Leave'}
               {activeTab === 'payslips' && '💰 Payslips'}
@@ -417,6 +419,28 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
                   <h3 style={{ fontSize: '36px', margin: '0 0 10px 0', fontWeight: '700' }}>{totalLeaves}</h3>
                   <p style={{ margin: 0, fontSize: '16px', opacity: 0.8 }}>Total Leaves</p>
                 </div>
+
+                {remainingLeaves < 0 && (
+                  <div style={{
+                    background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                    color: '#d97706',
+                    padding: '30px',
+                    borderRadius: '20px',
+                    textAlign: 'center',
+                    boxShadow: '0 4px 20px rgba(245, 158, 11, 0.15)',
+                    transition: 'transform 0.3s ease',
+                    gridColumn: 'span 2'
+                  }}>
+                    <div style={{ fontSize: '48px', marginBottom: '15px' }}>⚠️</div>
+                    <h3 style={{ fontSize: '24px', margin: '0 0 10px 0', fontWeight: '700' }}>
+                      Salary Deduction Alert
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '16px', opacity: 0.8 }}>
+                      You have exceeded your leave balance by {Math.abs(remainingLeaves)} days. 
+                      Salary will be deducted for excess leaves.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div style={{
@@ -537,13 +561,14 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
                           <th style={{ padding: '20px 15px', textAlign: 'left', fontWeight: '600', color: '#333' }}>Duration</th>
                           <th style={{ padding: '20px 15px', textAlign: 'left', fontWeight: '600', color: '#333' }}>Reason</th>
                           <th style={{ padding: '20px 15px', textAlign: 'left', fontWeight: '600', color: '#333' }}>Status</th>
+                          <th style={{ padding: '20px 15px', textAlign: 'left', fontWeight: '600', color: '#333' }}>Salary</th>
                         </tr>
                       </thead>
                       <tbody>
                         {paginatedLeaves.map(lr => {
                           const startDate = new Date(lr.startDate);
                           const endDate = new Date(lr.endDate);
-                          const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                          const duration = lr.days || Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
                           return (
                             <tr key={lr.id} style={{
                               borderBottom: '1px solid #f1f3f4',
@@ -598,6 +623,53 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
                                   <span>{statusIcons[lr.status]}</span>
                                   {statusText[lr.status]}
                                 </span>
+                              </td>
+                              <td style={{ padding: '20px 15px' }}>
+                                {lr.status === 'APPROVED' && lr.salaryDeducted ? (
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    padding: '6px 12px',
+                                    borderRadius: '20px',
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    backgroundColor: '#fef3c7',
+                                    color: '#d97706',
+                                    border: '1px solid #fbbf24'
+                                  }}>
+                                    <span>⚠️</span>
+                                    Deducted
+                                  </span>
+                                ) : lr.status === 'APPROVED' ? (
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    padding: '6px 12px',
+                                    borderRadius: '20px',
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    backgroundColor: '#dcfce7',
+                                    color: '#166534',
+                                    border: '1px solid #bbf7d0'
+                                  }}>
+                                    <span>✅</span>
+                                    Normal
+                                  </span>
+                                ) : (
+                                  <span style={{
+                                    padding: '6px 12px',
+                                    borderRadius: '20px',
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    backgroundColor: '#f3f4f6',
+                                    color: '#6b7280',
+                                    border: '1px solid #d1d5db'
+                                  }}>
+                                    -
+                                  </span>
+                                )}
                               </td>
                             </tr>
                           );

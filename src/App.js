@@ -12,6 +12,9 @@ import EmployeeForm from './components/EmployeeForm';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import Layout from './components/Layout';
 import EmployeesList from './components/EmployeesList';
+import ManageUsers from './components/ManageUsers';
+import Summary from './components/Summary';
+import EmployeeList from './components/EmployeeList';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -81,35 +84,51 @@ function App() {
         <Routes>
           <Route
             path="/admin"
-            element={user.role === 'ADMIN' ? <AdminDashboard /> : <Unauthorized />}
+            element={user.role === 'ADMIN' ? <AdminDashboard user={user} /> : <Unauthorized />}
           />
           <Route
             path="/admin/users"
-            element={user.role === 'ADMIN' ? <AdminDashboard /> : <Unauthorized />}
+            element={user.role === 'ADMIN' ? <AdminDashboard user={user} /> : <Unauthorized />}
           />
           <Route
             path="/admin/users-list"
             element={user.role === 'ADMIN' ? <EmployeesList /> : <Unauthorized />}
           />
           <Route
+            path="/admin/manage-users"
+            element={user.role === 'ADMIN' ? <ManageUsers /> : <Unauthorized />}
+          />
+          <Route
+            path="/admin/summary"
+            element={user.role === 'ADMIN' ? <Summary /> : <Unauthorized />}
+          />
+          <Route
             path="/hr"
-            element={user.role === 'HR' ? <HRDashboard /> : <Unauthorized />}
+            element={user.role === 'HR' ? <HRDashboard user={user} /> : <Unauthorized />}
           />
           <Route
             path="/hr/employees"
-            element={user.role === 'HR' ? <HRDashboard /> : <Unauthorized />}
+            element={user.role === 'HR' ? <EmployeeList /> : <Unauthorized />}
+          />
+          <Route
+            path="/hr/summary"
+            element={user.role === 'HR' ? <Summary /> : <Unauthorized />}
           />
           <Route
             path="/manager"
-            element={user.role === 'MANAGER' ? <ManagerDashboard /> : <Unauthorized />}
+            element={user.role === 'MANAGER' ? <ManagerDashboard user={user} /> : <Unauthorized />}
           />
           <Route
             path="/manager/team"
-            element={user.role === 'MANAGER' ? <ManagerDashboard /> : <Unauthorized />}
+            element={user.role === 'MANAGER' ? <ManagerDashboard user={user} /> : <Unauthorized />}
           />
           <Route
             path="/manager/leaves"
-            element={user.role === 'MANAGER' ? <ManagerDashboard initialNav="leaves" /> : <Unauthorized />}
+            element={user.role === 'MANAGER' ? <ManagerDashboard user={user} initialNav="leaves" /> : <Unauthorized />}
+          />
+          <Route
+            path="/manager/summary"
+            element={user.role === 'MANAGER' ? <Summary /> : <Unauthorized />}
           />
           <Route
             path="/employee"
