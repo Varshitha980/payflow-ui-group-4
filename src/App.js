@@ -15,6 +15,28 @@ import EmployeesList from './components/EmployeesList';
 import ManageUsers from './components/ManageUsers';
 import Summary from './components/Summary';
 import EmployeeList from './components/EmployeeList';
+import CTCManagement from './components/CTCManagement';
+import PayslipManagement from './components/PayslipManagement';
+import EmployeePayslipView from './components/EmployeePayslipView';
+
+// Employee Routes Component
+function EmployeeRoutes({ user, onLogout }) {
+  const navigate = useNavigate();
+  
+  return (
+    <Routes>
+      <Route
+        path="/employee/dashboard"
+        element={<EmployeeDashboard employeeId={user.id} employeeName={user.name} onLogout={onLogout} />}
+      />
+      <Route
+        path="/employee/payslips"
+        element={<EmployeePayslipView user={user} onBack={() => navigate('/employee/dashboard?tab=payslips')} />}
+      />
+      <Route path="*" element={<Navigate to="/employee/dashboard" />} />
+    </Routes>
+  );
+}
 
 function App() {
   const [user, setUser] = useState(null);
@@ -67,13 +89,7 @@ function App() {
   if (user.role === 'EMPLOYEE') {
     return (
       <Router>
-        <Routes>
-          <Route
-            path="/employee/dashboard"
-            element={<EmployeeDashboard employeeId={user.id} employeeName={user.name} onLogout={handleLogout} />}
-          />
-          <Route path="*" element={<Navigate to="/employee/dashboard" />} />
-        </Routes>
+        <EmployeeRoutes user={user} onLogout={handleLogout} />
       </Router>
     );
   }
@@ -113,6 +129,14 @@ function App() {
           <Route
             path="/hr/summary"
             element={user.role === 'HR' ? <Summary /> : <Unauthorized />}
+          />
+          <Route
+            path="/hr/ctc"
+            element={user.role === 'HR' ? <CTCManagement user={user} /> : <Unauthorized />}
+          />
+          <Route
+            path="/hr/payslips"
+            element={user.role === 'HR' ? <PayslipManagement user={user} /> : <Unauthorized />}
           />
           <Route
             path="/manager"

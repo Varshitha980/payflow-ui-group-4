@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './EmployeeForm.css';
 
 const LEAVES_PER_PAGE = 10;
@@ -20,6 +21,8 @@ const statusText = {
 };
 
 const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [leaveBalance, setLeaveBalance] = useState(12);
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [form, setForm] = useState({ startDate: '', endDate: '', reason: '' });
@@ -29,9 +32,12 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
   const applyLeaveRef = useRef(null);
 
   useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const initialTab = queryParams.get('tab') || 'overview';
+    setActiveTab(initialTab);
     fetchLeaveBalance();
     fetchLeaveRequests();
-  }, []);
+  }, [location.search]);
 
   const fetchLeaveBalance = async () => {
     try {
@@ -317,21 +323,54 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+          position: 'relative'
         }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>
-              {activeTab === 'overview' && `Welcome ${employeeName || 'Employee'}`}
-              {activeTab === 'history' && '📋 Leave History'}
-              {activeTab === 'apply' && '📝 Apply Leave'}
-              {activeTab === 'payslips' && '💰 Payslips'}
-            </h1>
-            <p style={{ margin: '4px 0 0 0', opacity: 0.9, fontSize: '14px' }}>
-              {activeTab === 'overview' && 'Overview of your leave statistics and recent activity'}
-              {activeTab === 'history' && 'View and track all your leave requests'}
-              {activeTab === 'apply' && 'Submit a new leave request'}
-              {activeTab === 'payslips' && 'Access your salary and payment information'}
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            {activeTab === 'overview' && (
+              <button
+                onClick={() => navigate('/')}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  color: 'white',
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.3s ease',
+                  backdropFilter: 'blur(10px)'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.3)';
+                  e.target.style.transform = 'translateY(-2px)';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.transform = 'translateY(0)';
+                }}
+              >
+                ← Back to Home
+              </button>
+            )}
+            <div>
+              <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>
+                {activeTab === 'overview' && `Welcome ${employeeName || 'Employee'}`}
+                {activeTab === 'history' && '📋 Leave History'}
+                {activeTab === 'apply' && '📝 Apply Leave'}
+                {activeTab === 'payslips' && '💰 Payslips'}
+              </h1>
+              <p style={{ margin: '4px 0 0 0', opacity: 0.9, fontSize: '14px' }}>
+                {activeTab === 'overview' && 'Overview of your leave statistics and recent activity'}
+                {activeTab === 'history' && 'View and track all your leave requests'}
+                {activeTab === 'apply' && 'Submit a new leave request'}
+                {activeTab === 'payslips' && 'Access your salary and payment information'}
+              </p>
+            </div>
           </div>
           <div style={{
             display: 'flex',
@@ -355,26 +394,26 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
                 marginBottom: '40px'
               }}>
                 <div style={{
-                  background: remainingLeaves <= 0 
+                  background: usedLeaves >= totalLeaves 
                     ? 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)' 
                     : 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
-                  color: remainingLeaves <= 0 ? '#dc2626' : '#3730a3',
+                  color: usedLeaves >= totalLeaves ? '#dc2626' : '#3730a3',
                   padding: '30px',
                   borderRadius: '20px',
                   textAlign: 'center',
-                  boxShadow: remainingLeaves <= 0 
+                  boxShadow: usedLeaves >= totalLeaves 
                     ? '0 4px 20px rgba(220, 38, 38, 0.15)' 
                     : '0 4px 20px rgba(99, 102, 241, 0.15)',
                   transition: 'transform 0.3s ease'
                 }}>
                   <div style={{ fontSize: '48px', marginBottom: '15px' }}>
-                    {remainingLeaves <= 0 ? '🚫' : '🌴'}
+                    {usedLeaves >= totalLeaves ? '🚫' : '🌴'}
                   </div>
                   <h3 style={{ fontSize: '36px', margin: '0 0 10px 0', fontWeight: '700' }}>
-                    {remainingLeaves < 0 ? 0 : remainingLeaves}
+                    {usedLeaves}
                   </h3>
                   <p style={{ margin: 0, fontSize: '16px', opacity: 0.8 }}>
-                    {remainingLeaves <= 0 ? 'No Leaves Available' : 'Remaining Leaves'}
+                    {usedLeaves >= totalLeaves ? 'All Leaves Used' : 'Leaves Used'}
                   </p>
                 </div>
 
@@ -388,8 +427,8 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
                   transition: 'transform 0.3s ease'
                 }}>
                   <div style={{ fontSize: '48px', marginBottom: '15px' }}>📅</div>
-                  <h3 style={{ fontSize: '36px', margin: '0 0 10px 0', fontWeight: '700' }}>{usedLeaves}</h3>
-                  <p style={{ margin: 0, fontSize: '16px', opacity: 0.8 }}>Used Leaves</p>
+                  <h3 style={{ fontSize: '36px', margin: '0 0 10px 0', fontWeight: '700' }}>{remainingLeaves}</h3>
+                  <p style={{ margin: 0, fontSize: '16px', opacity: 0.8 }}>Remaining Leaves</p>
                 </div>
 
                 <div style={{
@@ -777,7 +816,7 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
                   fontWeight: '500',
                   textAlign: 'center'
                 }}>
-                  ⚠️ You have no remaining leaves. You cannot apply for new leave requests.
+                  ⚠️ You have no remaining leaves. Applying for leave will result in a salary deduction.
                 </div>
               )}
 
@@ -869,16 +908,15 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
 
                 <button 
                   type="submit" 
-                  disabled={remainingLeaves <= 0}
                   style={{
-                    background: remainingLeaves <= 0 ? '#e9ecef' : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                    color: remainingLeaves <= 0 ? '#999' : 'white',
+                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                    color: 'white',
                     border: 'none',
                     borderRadius: '15px',
                     padding: '18px 32px',
                     fontSize: '18px',
                     fontWeight: '700',
-                    cursor: remainingLeaves <= 0 ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                     transition: 'all 0.3s ease',
                     display: 'flex',
                     alignItems: 'center',
@@ -887,8 +925,8 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
                     marginTop: '10px'
                   }}
                 >
-                  <span>{remainingLeaves <= 0 ? '🚫' : '🛫'}</span>
-                  {remainingLeaves <= 0 ? 'No Leaves Available' : 'Submit Leave Request'}
+                  <span>🛫</span>
+                  {remainingLeaves <= 0 ? 'Apply with Salary Deduction' : 'Submit Leave Request'}
                 </button>
               </form>
 
@@ -912,7 +950,8 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
               background: 'white',
               borderRadius: '20px',
               padding: '32px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              textAlign: 'center'
             }}>
               <h2 style={{ 
                 margin: '0 0 24px 0', 
@@ -924,51 +963,56 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
               </h2>
               
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                gap: '24px',
-                marginBottom: '32px'
+                background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                borderRadius: '16px',
+                padding: '32px',
+                marginBottom: '24px',
+                border: '1px solid #0ea5e9'
               }}>
-                <div style={{
-                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                  color: '#92400e',
-                  padding: '24px',
-                  borderRadius: '16px',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 20px rgba(245, 158, 11, 0.15)'
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>📄</div>
+                <h3 style={{ 
+                  fontSize: '20px', 
+                  margin: '0 0 12px 0', 
+                  fontWeight: '600',
+                  color: '#0c4a6e'
                 }}>
-                  <div style={{ fontSize: '32px', marginBottom: '12px' }}>💰</div>
-                  <h3 style={{ fontSize: '24px', margin: '0 0 8px 0', fontWeight: '600' }}>Current Salary</h3>
-                  <p style={{ margin: 0, fontSize: '18px', opacity: 0.8 }}>₹45,000/month</p>
-                </div>
-                
-                <div style={{
-                  background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-                  color: '#1d4ed8',
-                  padding: '24px',
-                  borderRadius: '16px',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 20px rgba(59, 130, 246, 0.15)'
+                  View Your Payslips & CTC Details
+                </h3>
+                <p style={{ 
+                  margin: '0 0 24px 0', 
+                  fontSize: '16px', 
+                  color: '#0369a1',
+                  lineHeight: '1.5'
                 }}>
-                  <div style={{ fontSize: '32px', marginBottom: '12px' }}>📅</div>
-                  <h3 style={{ fontSize: '24px', margin: '0 0 8px 0', fontWeight: '600' }}>Pay Date</h3>
-                  <p style={{ margin: 0, fontSize: '18px', opacity: 0.8 }}>25th of every month</p>
-                </div>
-                
-                <div style={{
-                  background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)',
-                  color: '#166534',
-                  padding: '24px',
-                  borderRadius: '16px',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 20px rgba(34, 197, 94, 0.15)'
-                }}>
-                  <div style={{ fontSize: '32px', marginBottom: '12px' }}>📊</div>
-                  <h3 style={{ fontSize: '24px', margin: '0 0 8px 0', fontWeight: '600' }}>Total Payslips</h3>
-                  <p style={{ margin: 0, fontSize: '18px', opacity: 0.8 }}>12 available</p>
-                </div>
+                  Access your complete salary information, download payslips, and view your CTC breakdown
+                </p>
+                <button
+                  onClick={() => navigate('/employee/payslips')}
+                  style={{
+                    background: '#0ea5e9',
+                    color: 'white',
+                    border: 'none',
+                    padding: '12px 32px',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 4px 12px rgba(14, 165, 233, 0.3)'
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.background = '#0284c7';
+                    e.target.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.background = '#0ea5e9';
+                    e.target.style.transform = 'translateY(0)';
+                  }}
+                >
+                  View Payslips & CTC
+                </button>
               </div>
-
+              
               <div style={{
                 background: '#f9fafb',
                 borderRadius: '16px',
@@ -977,68 +1021,63 @@ const EmployeeDashboard = ({ employeeId, employeeName, onLogout }) => {
               }}>
                 <h3 style={{ 
                   margin: '0 0 16px 0', 
-                  fontSize: '20px', 
+                  fontSize: '18px', 
                   fontWeight: '600',
                   color: '#374151'
                 }}>
-                  📋 Recent Payslips
+                  💡 What you can do:
                 </h3>
-                
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                  gap: '16px'
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '16px',
+                  textAlign: 'left'
                 }}>
-                  {[
-                    { month: 'January 2025', amount: '₹45,000', status: 'Paid' },
-                    { month: 'December 2024', amount: '₹45,000', status: 'Paid' },
-                    { month: 'November 2024', amount: '₹45,000', status: 'Paid' },
-                    { month: 'October 2024', amount: '₹45,000', status: 'Paid' }
-                  ].map((payslip, index) => (
-                    <div key={index} style={{
-                      background: 'white',
-                      padding: '16px',
-                      borderRadius: '12px',
-                      border: '1px solid #e5e7eb',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-                      <div>
-                        <div style={{ fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
-                          {payslip.month}
-                        </div>
-                        <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                          {payslip.amount}
-                        </div>
-                      </div>
-                      <span style={{
-                        padding: '4px 12px',
-                        borderRadius: '20px',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        background: '#d1fae5',
-                        color: '#065f46',
-                        border: '1px solid #a7f3d0'
-                      }}>
-                        {payslip.status}
-                      </span>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px',
+                    background: 'white',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <span style={{ fontSize: '20px' }}>💰</span>
+                    <div>
+                      <div style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>View CTC</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>Salary breakdown</div>
                     </div>
-                  ))}
-                </div>
-                
-                <div style={{
-                  marginTop: '24px',
-                  padding: '16px',
-                  background: '#fef3c7',
-                  borderRadius: '12px',
-                  border: '1px solid #fde68a',
-                  textAlign: 'center'
-                }}>
-                  <p style={{ margin: 0, color: '#92400e', fontSize: '14px' }}>
-                    💡 <strong>Note:</strong> Payslips are automatically generated and available for download. 
-                    Contact HR for any salary-related queries.
-                  </p>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px',
+                    background: 'white',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <span style={{ fontSize: '20px' }}>📄</span>
+                    <div>
+                      <div style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>Download Payslips</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>Monthly statements</div>
+                    </div>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px',
+                    background: 'white',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <span style={{ fontSize: '20px' }}>📊</span>
+                    <div>
+                      <div style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>Track History</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>Payment records</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
