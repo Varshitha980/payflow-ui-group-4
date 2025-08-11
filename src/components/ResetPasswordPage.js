@@ -4,6 +4,7 @@ import ManagerSelectionPage from './ManagerSelectionPage';
 
 const ResetPasswordPage = ({ id, username, onReset }) => {
   const [newPassword, setNewPassword] = useState('');
+  const [pfNumber, setPfNumber] = useState('');
   const [done, setDone] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [showManagerSelection, setShowManagerSelection] = useState(false);
@@ -39,13 +40,13 @@ const ResetPasswordPage = ({ id, username, onReset }) => {
       
       if (id) {
         // Employee password reset
-        endpoint = '/employees/reset-password';
-        payload = { id, newPassword };
+        endpoint = '/auth/employees/reset-password';
+        payload = { id, newPassword, pfNumber };
         console.log('Employee reset password URL:', endpoint);
         console.log('Employee reset payload:', payload);
       } else if (username) {
         // User (Manager/HR) password reset
-        endpoint = '/users/reset-password';
+        endpoint = '/auth/users/reset-password';
         payload = { username, newPassword };
         console.log('User reset password URL:', endpoint);
         console.log('User reset payload:', payload);
@@ -102,6 +103,19 @@ const ResetPasswordPage = ({ id, username, onReset }) => {
         width: '100%'
       }}>
         <h2 style={{ marginBottom: '30px', color: '#333' }}>Reset Password</h2>
+        {id && (
+          <p style={{ 
+            marginBottom: '20px', 
+            color: '#666', 
+            fontSize: '14px',
+            backgroundColor: '#f8f9fa',
+            padding: '10px',
+            borderRadius: '8px',
+            border: '1px solid #e9ecef'
+          }}>
+            🔐 <strong>Security Note:</strong> Employees must provide their PF Number
+          </p>
+        )}
         {done ? (
           <>
             <p style={{ marginBottom: '30px', color: '#28a745', fontSize: '18px' }}>
@@ -131,10 +145,60 @@ const ResetPasswordPage = ({ id, username, onReset }) => {
           </>
         ) : (
           <>
+            {id && (
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  textAlign: 'left',
+                  fontWeight: '600',
+                  color: '#333',
+                  fontSize: '14px'
+                }}>
+                  PF Number *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter your PF Number"
+                  value={pfNumber}
+                  onChange={e => setPfNumber(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '15px',
+                    fontSize: '16px',
+                    border: '2px solid #e1e5e9',
+                    borderRadius: '8px',
+                    backgroundColor: 'white',
+                    outline: 'none',
+                    transition: 'border-color 0.3s ease'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#007bff'}
+                  onBlur={(e) => e.target.style.borderColor = '#e1e5e9'}
+                />
+                <small style={{
+                  display: 'block',
+                  marginTop: '5px',
+                  color: '#666',
+                  fontSize: '12px',
+                  fontStyle: 'italic'
+                }}>
+                  </small>
+              </div>
+            )}
             <div style={{ marginBottom: '30px' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                textAlign: 'left',
+                fontWeight: '600',
+                color: '#333',
+                fontSize: '14px'
+              }}>
+                New Password *
+              </label>
               <input
                 type="password"
-                placeholder="New Password"
+                placeholder="Enter new password"
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 style={{
@@ -153,26 +217,26 @@ const ResetPasswordPage = ({ id, username, onReset }) => {
             </div>
             <button 
               onClick={handleReset}
-              disabled={!newPassword.trim()}
+              disabled={id ? (!newPassword.trim() || !pfNumber.trim()) : !newPassword.trim()}
               style={{
                 width: '100%',
                 padding: '15px',
                 fontSize: '16px',
                 fontWeight: '600',
-                backgroundColor: newPassword.trim() ? '#007bff' : '#e1e5e9',
-                color: newPassword.trim() ? 'white' : '#999',
+                backgroundColor: (id ? (newPassword.trim() && pfNumber.trim()) : newPassword.trim()) ? '#007bff' : '#e1e5e9',
+                color: (id ? (newPassword.trim() && pfNumber.trim()) : newPassword.trim()) ? 'white' : '#999',
                 border: 'none',
                 borderRadius: '8px',
-                cursor: newPassword.trim() ? 'pointer' : 'not-allowed',
+                cursor: (id ? (newPassword.trim() && pfNumber.trim()) : newPassword.trim()) ? 'pointer' : 'not-allowed',
                 transition: 'all 0.3s ease'
               }}
               onMouseEnter={(e) => {
-                if (newPassword.trim()) {
+                if (id ? (newPassword.trim() && pfNumber.trim()) : newPassword.trim()) {
                   e.target.style.backgroundColor = '#0056b3';
                 }
               }}
               onMouseLeave={(e) => {
-                if (newPassword.trim()) {
+                if (id ? (newPassword.trim() && pfNumber.trim()) : newPassword.trim()) {
                   e.target.style.backgroundColor = '#007bff';
                 }
               }}

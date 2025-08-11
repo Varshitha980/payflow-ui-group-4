@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './ModernDashboardStyles.css';
 import html2pdf from 'html2pdf.js';
+import PaymentHoldModal from './PaymentHoldModal';
+import PayslipTemplate from './PayslipTemplate';
 
 const PayslipManagement = ({ user }) => {
   const [employees, setEmployees] = useState([]);
@@ -11,14 +13,19 @@ const PayslipManagement = ({ user }) => {
   const [showGenerateForm, setShowGenerateForm] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [employeesWithHold, setEmployeesWithHold] = useState([]);
+  const [showPaymentHoldModal, setShowPaymentHoldModal] = useState(false);
+  const [selectedPayslip, setSelectedPayslip] = useState(null);
+  const [ctcData, setCtcData] = useState(null);
 
   const months = [
-    'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
-    'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
   useEffect(() => {
     loadEmployees();
+    loadPaymentHoldStatus();
   }, []);
 
   const loadEmployees = async () => {
@@ -33,13 +40,78 @@ const PayslipManagement = ({ user }) => {
       setLoading(false);
     }
   };
+  
+  const loadPaymentHoldStatus = async () => {
+    try {
+      console.log('Loading payment hold status...'); // Debug log
+      const response = await fetch('http://localhost:8081/api/employees/payment-hold');
+      console.log('Payment hold response status:', response.status); // Debug log
+      console.log('Payment hold response headers:', response.headers); // Debug log
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Payment hold status loaded:', data); // Debug log
+        console.log('Payment hold data type:', typeof data); // Debug log
+        console.log('Payment hold data length:', Array.isArray(data) ? data.length : 'Not an array'); // Debug log
+        
+        if (Array.isArray(data)) {
+          data.forEach((item, index) => {
+            console.log(`Payment hold item ${index}:`, item); // Debug log
+            console.log(`Item ${index} employeeId:`, item.employeeId); // Debug log
+            console.log(`Item ${index} type:`, typeof item.employeeId); // Debug log
+          });
+        }
+        
+        setEmployeesWithHold(data);
+      } else {
+        console.error('Failed to load payment hold status:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error response body:', errorText); // Debug log
+      }
+    } catch (error) {
+      console.error('Error loading payment hold status:', error);
+    }
+  };
+
+  // Helper function to check if an employee has a payment hold
+  const hasPaymentHold = (employeeId) => {
+    console.log(`Checking payment hold for employee ${employeeId}`); // Debug log
+    console.log(`Current employeesWithHold state:`, employeesWithHold); // Debug log
+    const hasHold = employeesWithHold.some(emp => emp.employeeId === employeeId);
+    console.log(`Employee ${employeeId} has payment hold: ${hasHold}`); // Debug log
+    return hasHold;
+  };
+
+  // Debug effect to log state changes
+  useEffect(() => {
+    console.log('employeesWithHold state changed:', employeesWithHold);
+  }, [employeesWithHold]);
+  
+  const togglePaymentHold = (employee) => {
+    setSelectedEmployee(employee);
+    setShowPaymentHoldModal(true);
+  };
+  
+  const handlePaymentHoldSuccess = async (successMessage) => {
+    setMessage(`✅ ${successMessage}`);
+    
+    // Add a small delay to ensure the backend has processed the request
+    setTimeout(async () => {
+      await loadPaymentHoldStatus(); // Reload payment hold status
+      await loadEmployees(); // Reload employees to get updated payment hold status
+    }, 500);
+  };
 
   const loadPayslips = async (employeeId) => {
     try {
       const response = await fetch(`http://localhost:8081/api/payslip/employee/${employeeId}/all`);
       const data = await response.json();
       if (data.success) {
-        setPayslips(data.data);
+        // Filter out September 2025 payslips
+        const filteredPayslips = data.data.filter(payslip => 
+          !(payslip.month === 'September' && payslip.year === 2025)
+        );
+        setPayslips(filteredPayslips);
       }
     } catch (error) {
       console.error('Error loading payslips:', error);
@@ -59,18 +131,29 @@ const PayslipManagement = ({ user }) => {
       return;
     }
 
-    // Check if trying to generate payslip for current month
+    // Check if trying to generate payslip for future months
     const currentDate = new Date();
-    const currentMonth = currentDate.toLocaleString('en-US', { month: 'long' });
+    const currentMonth = currentDate.getMonth(); // 0-11 for Jan-Dec
     const currentYear = currentDate.getFullYear();
     
-    if (selectedMonth.toLowerCase() === currentMonth.toLowerCase() && 
-        selectedYear === currentYear) {
-      setMessage('❌ Professional Policy: Payslips can only be generated for completed months. Current month payslips will be available after the month ends.');
+    // Convert selected month to index (0-11)
+    const selectedMonthIndex = months.findIndex(month => month === selectedMonth);
+    
+    // Check if selected date is in the future
+    if (selectedYear > currentYear || 
+        (selectedYear === currentYear && selectedMonthIndex > currentMonth)) {
+      setMessage('❌ Professional Policy: Payslips can only be generated for completed or current months, not future months.');
+      return;
+    }
+    
+    // Check if month and year are selected
+    if (!selectedMonth || !selectedYear) {
+      setMessage('Please select month and year');
       return;
     }
 
     try {
+      setMessage('Generating payslip...');
       const response = await fetch('http://localhost:8081/api/payslip/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -83,97 +166,77 @@ const PayslipManagement = ({ user }) => {
       const data = await response.json();
       
       if (data.success) {
-        setMessage('Payslip generated successfully');
+        setMessage('✅ Payslip generated successfully');
         setShowGenerateForm(false);
         loadPayslips(selectedEmployee.id);
       } else {
-        setMessage(data.message || 'Error generating payslip');
+        setMessage(`❌ ${data.message || 'Error generating payslip'}`);
+        console.error('API Error:', data);
       }
     } catch (error) {
       console.error('Error generating payslip:', error);
-      setMessage('Error generating payslip');
-    }
-  };
-
-  const handleGenerateAllPayslips = async () => {
-    if (!selectedMonth || !selectedYear) {
-      setMessage('Please select month and year');
-      return;
-    }
-
-    // Check if trying to generate payslips for current month
-    const currentDate = new Date();
-    const currentMonth = currentDate.toLocaleString('en-US', { month: 'long' });
-    const currentYear = currentDate.getFullYear();
-    
-    if (selectedMonth.toLowerCase() === currentMonth.toLowerCase() && 
-        selectedYear === currentYear) {
-      setMessage('❌ Professional Policy: Payslips can only be generated for completed months. Current month payslips will be available after the month ends.');
-      return;
-    }
-
-    try {
-      const response = await fetch('http://localhost:8081/api/payslip/generate-all', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          month: selectedMonth,
-          year: selectedYear
-        })
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        setMessage(`Payslips generated successfully for ${data.data.length} employees`);
-        if (selectedEmployee) {
-          loadPayslips(selectedEmployee.id);
-        }
-      } else {
-        setMessage(data.message || 'Error generating payslips');
-      }
-    } catch (error) {
-      console.error('Error generating payslips:', error);
-      setMessage('Error generating payslips');
+      setMessage(`❌ Error generating payslip: ${error.message}`);
     }
   };
 
   const handleDownloadPayslip = async (payslip) => {
     try {
-      // For now, we'll use the backend API since we don't have the payslip template in this component
-      // In the future, we could add a modal with the payslip template here as well
-      const response = await fetch(`http://localhost:8081/api/payslip/download-pdf/${payslip.employeeId}/${payslip.month}/${payslip.year}`);
+      // Use client-side PDF generation with html2pdf
+      // First, we need to show the payslip template to generate the PDF from
+      setSelectedPayslip(payslip);
       
-      if (response.ok) {
-        // Get the blob from the response
-        const blob = await response.blob();
-        
-        // Create a download link
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `payslip_${payslip.employeeId}_${payslip.month}_${payslip.year}.pdf`;
-        
-        // Trigger the download
-        document.body.appendChild(a);
-        a.click();
-        
-        // Clean up
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        
-        setMessage('Payslip downloaded successfully');
-        setTimeout(() => setMessage(''), 3000);
-      } else {
-        setMessage('Error downloading payslip');
-        setTimeout(() => setMessage(''), 3000);
-      }
+      // Wait a bit for the template to render, then generate PDF
+      setTimeout(() => {
+        const payslipElement = document.querySelector('.payslip-container');
+        if (payslipElement) {
+          const opt = {
+            margin: 0.5,
+            filename: `payslip_${payslip.employeeId}_${payslip.month}_${payslip.year}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: true, letterRendering: true, allowTaint: true },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+          };
+          
+          html2pdf().set(opt).from(payslipElement).save().then(() => {
+            setMessage('Payslip downloaded successfully');
+            setTimeout(() => setMessage(''), 3000);
+            setSelectedPayslip(null);
+          }).catch((error) => {
+            console.error('Error generating PDF:', error);
+            setMessage('Error generating PDF');
+            setTimeout(() => setMessage(''), 3000);
+            setSelectedPayslip(null);
+          });
+        }
+      }, 2000);
     } catch (error) {
       console.error('Error downloading payslip:', error);
       setMessage('Error downloading payslip');
       setTimeout(() => setMessage(''), 3000);
     }
   };
+
+  // Fetch CTC details for a given employee
+  const fetchCtcData = async (employeeId) => {
+    try {
+      const response = await fetch(`http://localhost:8081/api/ctc/employee/${employeeId}/summary`);
+      const data = await response.json();
+      if (data.success && data.data) {
+        setCtcData(data.data);
+      } else {
+        setCtcData(null);
+      }
+    } catch (error) {
+      setCtcData(null);
+    }
+  };
+
+  // When opening the payslip modal, fetch CTC for the payslip's employee
+  useEffect(() => {
+    if (selectedPayslip) {
+      fetchCtcData(selectedPayslip.employeeId);
+    }
+  }, [selectedPayslip]);
 
   if (loading) {
     return <div className="loading">Loading...</div>;
@@ -200,14 +263,34 @@ const PayslipManagement = ({ user }) => {
             {employees.map(employee => (
               <div
                 key={employee.id}
-                className={`employee-card ${selectedEmployee?.id === employee.id ? 'selected' : ''}`}
-                onClick={() => handleEmployeeSelect(employee)}
+                className={`employee-card ${selectedEmployee?.id === employee.id ? 'selected' : ''} ${hasPaymentHold(employee.id) ? 'payment-hold' : ''}`}
               >
-                <div className="employee-info">
-                  <h3>{employee.name}</h3>
-                  <p>{employee.position}</p>
-                  <p>{employee.department}</p>
+                <div className="employee-card-content" onClick={() => handleEmployeeSelect(employee)}>
+                  <div className="employee-avatar">
+                    {employee.name ? employee.name.charAt(0) : 'U'}
+                  </div>
+                  <div className="employee-info">
+                    <h3>{employee.name}</h3>
+                    {hasPaymentHold(employee.id) && (
+                      <span className="payment-hold-badge" title={employeesWithHold.find(emp => emp.employeeId === employee.id)?.reason || 'Payment on hold'}>
+                        Payment Hold
+                      </span>
+                    )}
+                  </div>
                 </div>
+                {user?.role === 'HR' || user?.role === 'ADMIN' ? (
+                  <div className="employee-actions">
+                    <button 
+                      className={`btn btn-small ${hasPaymentHold(employee.id) ? 'btn-warning' : 'btn-secondary'}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePaymentHold(employee);
+                      }}
+                    >
+                      {hasPaymentHold(employee.id) ? 'Remove Hold' : 'Hold Payment'}
+                    </button>
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
@@ -219,8 +302,9 @@ const PayslipManagement = ({ user }) => {
             <>
               <div className="payslip-header">
                 <h2>Payslips - {selectedEmployee.name}</h2>
+                {/* Action Buttons */}
                 <div className="payslip-actions">
-                  <button className="btn btn-primary" onClick={() => setShowGenerateForm(true)}>
+                  <button className="btn btn-primary" onClick={handleGeneratePayslip}>
                     Generate Payslip
                   </button>
                 </div>
@@ -276,10 +360,10 @@ const PayslipManagement = ({ user }) => {
         </div>
       </div>
 
-      {/* Bulk Generate Payslips */}
-      <div className="bulk-generate-section">
-        <h2>Bulk Payslip Generation</h2>
-        <div className="bulk-generate-form">
+      {/* Month/Year Selection */}
+      <div className="month-year-selection">
+        <h2>Payslip Generation</h2>
+        <div className="month-year-form">
           <div className="form-group">
             <label>Month:</label>
             <select 
@@ -303,13 +387,6 @@ const PayslipManagement = ({ user }) => {
               ))}
             </select>
           </div>
-          <button 
-            className="btn btn-primary"
-            onClick={handleGenerateAllPayslips}
-            disabled={!selectedMonth || !selectedYear}
-          >
-            Generate All Payslips
-          </button>
         </div>
       </div>
 
@@ -365,8 +442,30 @@ const PayslipManagement = ({ user }) => {
           </div>
         </div>
       )}
+
+      {/* Payslip Template Modal for Download */}
+      {selectedPayslip && (
+        <PayslipTemplate
+          payslipData={{ ...selectedPayslip, ...ctcData }}
+          employeeData={employees.find(emp => emp.id === selectedPayslip.employeeId) || selectedEmployee}
+          onClose={() => setSelectedPayslip(null)}
+          onDownload={() => handleDownloadPayslip(selectedPayslip)}
+        />
+      )}
+
+      {/* Payment Hold Modal */}
+      {showPaymentHoldModal && selectedEmployee && (
+        <PaymentHoldModal
+          isOpen={showPaymentHoldModal}
+          onClose={() => setShowPaymentHoldModal(false)}
+          employeeId={selectedEmployee.id}
+          employeeName={selectedEmployee.name}
+          currentUser={user}
+          onSuccess={handlePaymentHoldSuccess}
+        />
+      )}
     </div>
   );
 };
 
-export default PayslipManagement; 
+export default PayslipManagement;

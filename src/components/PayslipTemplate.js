@@ -2,216 +2,175 @@ import React from 'react';
 import './PayslipTemplate.css';
 
 const PayslipTemplate = ({ payslipData, employeeData, onClose, onDownload }) => {
+  // Helper function to format currency
   const formatCurrency = (amount) => {
+    const numAmount = parseFloat(amount) || 0;
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount || 0);
+    }).format(numAmount);
   };
 
-  // Calculate daily amounts based on month
-  const calculateDailyAmount = (annualAmount, month, year) => {
-    if (!annualAmount || !month || !year) return 0;
-    
-    const monthNumber = new Date(`${month} 1, ${year}`).getMonth();
-    const daysInMonth = new Date(year, monthNumber + 1, 0).getDate();
-    
-    return (annualAmount / 365) * daysInMonth; // Daily rate × days in month
+  // Helper function to calculate a monthly amount from an annual amount
+  const calculateMonthlyAmount = (annualAmount) => {
+    const amount = parseFloat(annualAmount) || 0;
+    return amount / 12;
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return 'N/A';
-    return date.toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'long',
-    });
-  };
-
+  // Helper function to format month and year for display
   const formatMonthYear = (month, year) => {
     if (!month || !year) return 'N/A';
     return `${month} ${year}`;
   };
 
+  // --- CORRECT CALCULATIONS ---
+
+  // Calculate monthly earnings by dividing annual amounts by 12
+  const basicSalaryMonthly = calculateMonthlyAmount(payslipData?.basicSalary);
+  const hraMonthly = calculateMonthlyAmount(payslipData?.hra);
+  const allowancesMonthly = calculateMonthlyAmount(payslipData?.allowances);
+  const bonusesMonthly = calculateMonthlyAmount(payslipData?.bonuses);
+  const pfContributionMonthly = calculateMonthlyAmount(payslipData?.pfContribution);
+  const gratuityMonthly = calculateMonthlyAmount(payslipData?.gratuity);
+
+  // Gross Salary is the sum of all monthly earnings
+  const grossSalaryMonthly =
+    basicSalaryMonthly +
+    hraMonthly +
+    allowancesMonthly +
+    bonusesMonthly +
+    pfContributionMonthly +
+    gratuityMonthly;
+    
+  // Correctly calculate Total Deductions by summing all monthly deduction items
+  // The PF and Gratuity are deductions for the employee, which should be the same as the employer's contribution
+  const pfContributionEmployee = pfContributionMonthly;
+  const gratuityEmployee = gratuityMonthly;
+  const leaveDeductions = parseFloat(payslipData?.leaveDeductions) || 0;
+
+  const totalDeduction = pfContributionEmployee + gratuityEmployee + leaveDeductions;
+
+  // Net Pay is Gross Salary minus Total Deductions
+  const netPay = grossSalaryMonthly - totalDeduction;
+
   return (
     <div className="payslip-overlay">
       <div className="payslip-container">
-        <div className="payslip-header">
-          <div className="company-info">
-            <div className="logo-section">
-              <div className="company-logo">
-                <span className="logo-text">T</span>
-              </div>
-                             <div className="company-name">
-                 <h2>Company Name</h2>
-                 <p>Payroll Management System</p>
-               </div>
+        {/* Header */}
+        <div className="payslip-header-new">
+          <div className="company-logo-section">
+            <div className="company-logo">
+              <span className="logo-text">P</span>
+            </div>
+            <div className="company-details">
+              <h2>Payflow</h2>
             </div>
           </div>
-          <div className="company-bar">
-            <span>Company Name</span>
-          </div>
-          <div className="payslip-title-bar">
-            <span>Pay Slip</span>
-          </div>
+          <h1 className="payslip-title">PAYSLIP</h1>
         </div>
 
-        <div className="employee-info">
+        {/* Employee Information Section */}
+        <div className="employee-info-section">
           <div className="info-row">
-            <span className="label">Employee Name :</span>
+            <span className="label">Employee Name:</span>
             <span className="value">{employeeData?.name || 'N/A'}</span>
           </div>
           <div className="info-row">
-            <span className="label">Designation :</span>
-            <span className="value">{employeeData?.position || 'N/A'}</span>
+            <span className="label">Month:</span>
+            <span className="value">{formatMonthYear(payslipData?.month, payslipData?.year)}</span>
           </div>
-          <div className="info-row">
-            <span className="label">Department :</span>
-            <span className="value">{employeeData?.department || 'N/A'}</span>
-          </div>
-                     <div className="info-row">
-             <span className="label">Month :</span>
-             <span className="value">{formatMonthYear(payslipData?.month, payslipData?.year)}</span>
-           </div>
         </div>
 
-        <div className="payslip-table">
-          <div className="earnings-section">
-            <div className="section-header">
+        {/* Earnings and Deductions Table */}
+        <div className="payslip-details-table">
+          <div className="table-column earnings-column">
+            <div className="column-header">
               <h3>Earnings</h3>
               <div className="sub-headers">
-                <span>Salary head</span>
+                <span>Salary Head</span>
                 <span>Amount</span>
               </div>
             </div>
-                         <div className="salary-items">
-               <div className="salary-item">
-                 <span>Basic Salary</span>
-                 <span>{formatCurrency(calculateDailyAmount(payslipData?.basicSalary, payslipData?.month, payslipData?.year))}</span>
-                 <div style={{ fontSize: '10px', color: '#666' }}>
-                   (₹{payslipData?.basicSalary?.toLocaleString() || 0} ÷ 365 × {new Date(payslipData?.year, new Date(`${payslipData?.month} 1, ${payslipData?.year}`).getMonth() + 1, 0).getDate()} days)
-                 </div>
-               </div>
-               <div className="salary-item">
-                 <span>HRA (House Rent Allowance)</span>
-                 <span>{formatCurrency(calculateDailyAmount(payslipData?.hra, payslipData?.month, payslipData?.year))}</span>
-                 <div style={{ fontSize: '10px', color: '#666' }}>
-                   (₹{payslipData?.hra?.toLocaleString() || 0} ÷ 365 × {new Date(payslipData?.year, new Date(`${payslipData?.month} 1, ${payslipData?.year}`).getMonth() + 1, 0).getDate()} days)
-                 </div>
-               </div>
-               <div className="salary-item">
-                 <span>Allowances</span>
-                 <span>{formatCurrency(calculateDailyAmount(payslipData?.allowances, payslipData?.month, payslipData?.year))}</span>
-                 <div style={{ fontSize: '10px', color: '#666' }}>
-                   (₹{payslipData?.allowances?.toLocaleString() || 0} ÷ 365 × {new Date(payslipData?.year, new Date(`${payslipData?.month} 1, ${payslipData?.year}`).getMonth() + 1, 0).getDate()} days)
-                 </div>
-               </div>
-               <div className="salary-item">
-                 <span>Bonuses</span>
-                 <span>{formatCurrency(calculateDailyAmount(payslipData?.bonuses, payslipData?.month, payslipData?.year))}</span>
-                 <div style={{ fontSize: '10px', color: '#666' }}>
-                   (₹{payslipData?.bonuses?.toLocaleString() || 0} ÷ 365 × {new Date(payslipData?.year, new Date(`${payslipData?.month} 1, ${payslipData?.year}`).getMonth() + 1, 0).getDate()} days)
-                 </div>
-               </div>
-               <div className="salary-item">
-                 <span>PF Contribution</span>
-                 <span>{formatCurrency(calculateDailyAmount(payslipData?.pfContribution, payslipData?.month, payslipData?.year))}</span>
-                 <div style={{ fontSize: '10px', color: '#666' }}>
-                   (₹{payslipData?.pfContribution?.toLocaleString() || 0} ÷ 365 × {new Date(payslipData?.year, new Date(`${payslipData?.month} 1, ${payslipData?.year}`).getMonth() + 1, 0).getDate()} days)
-                 </div>
-               </div>
-               <div className="salary-item">
-                 <span>Gratuity</span>
-                 <span>{formatCurrency(calculateDailyAmount(payslipData?.gratuity, payslipData?.month, payslipData?.year))}</span>
-                 <div style={{ fontSize: '10px', color: '#666' }}>
-                   (₹{payslipData?.gratuity?.toLocaleString() || 0} ÷ 365 × {new Date(payslipData?.year, new Date(`${payslipData?.month} 1, ${payslipData?.year}`).getMonth() + 1, 0).getDate()} days)
-                 </div>
-               </div>
-               <div className="salary-item gross">
-                 <span>GROSS SALARY</span>
-                 <span>{formatCurrency(calculateDailyAmount(payslipData?.totalCtc, payslipData?.month, payslipData?.year))}</span>
-               </div>
-               <div className="salary-item total">
-                 <span>NET PAY</span>
-                 <span>{formatCurrency(payslipData?.netPay)}</span>
-                 <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                   (Monthly Salary - Excess Leave Deduction)
-                 </div>
-               </div>
-             </div>
+            <div className="salary-items">
+              <div className="salary-item">
+                <span>Basic Salary</span>
+                <span>{formatCurrency(basicSalaryMonthly)}</span>
+              </div>
+              <div className="salary-item">
+                <span>HRA (House Rent Allowance)</span>
+                <span>{formatCurrency(hraMonthly)}</span>
+              </div>
+              <div className="salary-item">
+                <span>Allowances</span>
+                <span>{formatCurrency(allowancesMonthly)}</span>
+              </div>
+              <div className="salary-item">
+                <span>Bonuses</span>
+                <span>{formatCurrency(bonusesMonthly)}</span>
+              </div>
+              <div className="salary-item">
+                <span>PF Contribution (Employer)</span>
+                <span>{formatCurrency(pfContributionMonthly)}</span>
+              </div>
+              <div className="salary-item">
+                <span>Gratuity (Employer)</span>
+                <span>{formatCurrency(gratuityMonthly)}</span>
+              </div>
+              <div className="salary-item total-row gross-salary">
+                <span>GROSS SALARY</span>
+                <span>{formatCurrency(grossSalaryMonthly)}</span>
+              </div>
+            </div>
           </div>
 
-          <div className="deductions-section">
-            <div className="section-header">
+          <div className="table-column deductions-column">
+            <div className="column-header">
               <h3>Deductions</h3>
               <div className="sub-headers">
-                <span>Salary head</span>
+                <span>Salary Head</span>
                 <span>Amount</span>
               </div>
             </div>
-                         <div className="salary-items">
-               <div className="salary-item">
-                 <span>PF Contribution</span>
-                 <span>{formatCurrency(calculateDailyAmount(payslipData?.pfContribution, payslipData?.month, payslipData?.year))}</span>
-                 <div style={{ fontSize: '10px', color: '#666' }}>
-                   (₹{payslipData?.pfContribution?.toLocaleString() || 0} ÷ 365 × {new Date(payslipData?.year, new Date(`${payslipData?.month} 1, ${payslipData?.year}`).getMonth() + 1, 0).getDate()} days)
-                 </div>
-               </div>
-               <div className="salary-item">
-                 <span>Gratuity</span>
-                 <span>{formatCurrency(calculateDailyAmount(payslipData?.gratuity, payslipData?.month, payslipData?.year))}</span>
-                 <div style={{ fontSize: '10px', color: '#666' }}>
-                   (₹{payslipData?.gratuity?.toLocaleString() || 0} ÷ 365 × {new Date(payslipData?.year, new Date(`${payslipData?.month} 1, ${payslipData?.year}`).getMonth() + 1, 0).getDate()} days)
-                 </div>
-               </div>
-               <div className="salary-item">
-                 <span>Leave Deductions</span>
-                 <span>{formatCurrency(payslipData?.deductions)}</span>
-               </div>
-               <div className="salary-item">
-                 <span></span>
-                 <span></span>
-               </div>
-               <div className="salary-item">
-                 <span></span>
-                 <span></span>
-               </div>
-               <div className="salary-item">
-                 <span></span>
-                 <span></span>
-               </div>
-               <div className="salary-item">
-                 <span></span>
-                 <span></span>
-               </div>
-               <div className="salary-item total">
-                 <span>Total Deduction</span>
-                 <span>{formatCurrency((calculateDailyAmount(payslipData?.pfContribution, payslipData?.month, payslipData?.year) + calculateDailyAmount(payslipData?.gratuity, payslipData?.month, payslipData?.year) + (payslipData?.deductions || 0)))}</span>
-               </div>
-             </div>
-          </div>
-        </div>
-
-        <div className="payslip-footer">
-          <div className="signature-section">
-            <div className="signature-item">
-              <span className="signature-label">Prepared by</span>
-              <div className="signature-line"></div>
-            </div>
-            <div className="signature-item">
-              <span className="signature-label">Checked by</span>
-              <div className="signature-line"></div>
-            </div>
-            <div className="signature-item">
-              <span className="signature-label">Authorized by</span>
-              <div className="signature-line"></div>
+            <div className="salary-items">
+              <div className="salary-item">
+                <span>PF Contribution (Employee)</span>
+                <span>{formatCurrency(pfContributionEmployee)}</span>
+              </div>
+              <div className="salary-item">
+                <span>Gratuity (Employee)</span>
+                <span>{formatCurrency(gratuityEmployee)}</span>
+              </div>
+              <div className="salary-item">
+                <span>Leave Deductions</span>
+                <span>{formatCurrency(leaveDeductions)}</span>
+              </div>
+              <div className="salary-item total-row total-deduction">
+                <span>Total Deduction</span>
+                <span>{formatCurrency(totalDeduction)}</span>
+              </div>
             </div>
           </div>
         </div>
 
+        {/* Net Pay Section */}
+        <div className="net-pay-section">
+          <div className="net-pay-item">
+            <span className="label">NET PAY</span>
+            <span className="value">{formatCurrency(netPay)}</span>
+          </div>
+          <p className="net-pay-note">(Gross Salary - Total Deductions = Net Pay)</p>
+        </div>
+
+        {/* Footer with Note */}
+        <div className="payslip-footer-new">
+          <div className="footer-note">
+            This is a computer-generated payslip and does not require signatures.
+          </div>
+        </div>
+
+        {/* Action Buttons */}
         <div className="payslip-actions">
           <button className="btn btn-secondary" onClick={onClose}>
             Close
@@ -225,4 +184,4 @@ const PayslipTemplate = ({ payslipData, employeeData, onClose, onDownload }) => 
   );
 };
 
-export default PayslipTemplate; 
+export default PayslipTemplate;

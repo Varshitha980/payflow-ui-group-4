@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 
@@ -19,22 +19,17 @@ import CTCManagement from './components/CTCManagement';
 import PayslipManagement from './components/PayslipManagement';
 import EmployeePayslipView from './components/EmployeePayslipView';
 
-// Employee Routes Component
-function EmployeeRoutes({ user, onLogout }) {
+// Wrapper component to use hooks within Router context
+function EmployeePayslipViewWrapper({ user, onLogout }) {
   const navigate = useNavigate();
+  const location = useLocation();
   
   return (
-    <Routes>
-      <Route
-        path="/employee/dashboard"
-        element={<EmployeeDashboard employeeId={user.id} employeeName={user.name} onLogout={onLogout} />}
-      />
-      <Route
-        path="/employee/payslips"
-        element={<EmployeePayslipView user={user} onBack={() => navigate('/employee/dashboard?tab=payslips')} />}
-      />
-      <Route path="*" element={<Navigate to="/employee/dashboard" />} />
-    </Routes>
+    <EmployeePayslipView 
+      user={user} 
+      onBack={() => navigate('/employee/dashboard?tab=payslips')} 
+      keepNavVisible={location.state?.keepNavVisible || false}
+    />
   );
 }
 
@@ -87,9 +82,47 @@ function App() {
 
   // Employee dashboard route
   if (user.role === 'EMPLOYEE') {
+    // Log the employee user object for debugging
+    console.log('Rendering employee routes with user:', user);
+    
+    // Make sure we have the required employee ID
+    if (!user.id) {
+      return (
+        <div style={{padding: '20px', color: 'red', textAlign: 'center'}}>
+          <h2>Error: Missing Employee ID</h2>
+          <p>Your login was successful, but the employee ID is missing from the response.</p>
+          <p>Please contact your administrator or try logging in again.</p>
+          <button 
+            onClick={handleLogout}
+            style={{
+              padding: '10px 20px',
+              background: '#4f46e5',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              marginTop: '20px'
+            }}
+          >
+            Back to Login
+          </button>
+        </div>
+      );
+    }
+    
     return (
       <Router>
-        <EmployeeRoutes user={user} onLogout={handleLogout} />
+        <Routes>
+          <Route
+            path="/employee/dashboard"
+            element={<EmployeeDashboard employeeId={user.id} employeeName={user.name || user.email} onLogout={handleLogout} />}
+          />
+          <Route
+            path="/employee/payslips"
+            element={<EmployeePayslipViewWrapper user={user} onLogout={handleLogout} />}
+          />
+          <Route path="*" element={<Navigate to="/employee/dashboard" />} />
+        </Routes>
       </Router>
     );
   }

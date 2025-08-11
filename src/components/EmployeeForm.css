@@ -1,7 +1,7 @@
 .form-container {
-  max-width: 400px;
+  max-width: 800px;
   margin: 40px auto;
-  padding: 30px;
+  padding: 40px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
@@ -23,18 +23,43 @@ input {
   font-size: 14px;
 }
 
-button {
-  width: 100%;
+.form-navigation {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.btn-primary, .btn-secondary {
+  flex: 1;
   padding: 12px;
-  background-color: #007bff;
-  color: white;
   font-weight: bold;
   font-size: 16px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-button:hover {
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-primary:hover {
   background-color: #0056b3;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+h3 {
+  margin-bottom: 20px;
+  color: #444;
+  font-size: 1.2em;
 }

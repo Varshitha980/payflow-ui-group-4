@@ -28,6 +28,15 @@ const HRDashboard = ({ user }) => {
     phone: '',
     address: ''
   });
+  
+  const [ctcDetails, setCtcDetails] = useState({
+    basicSalary: '',
+    hra: '',
+    allowances: '',
+    bonuses: '',
+    pfContribution: '',
+    gratuity: ''
+  });
   const [education, setEducation] = useState({
     degree: '',
     university: '',
@@ -88,11 +97,23 @@ const HRDashboard = ({ user }) => {
 
   const handleAddEmployee = async () => {
     try {
+      // Calculate total CTC
+      const totalCtc = (
+        parseFloat(ctcDetails.basicSalary || 0) +
+        parseFloat(ctcDetails.hra || 0) +
+        parseFloat(ctcDetails.allowances || 0) +
+        parseFloat(ctcDetails.bonuses || 0) +
+        parseFloat(ctcDetails.pfContribution || 0) +
+        parseFloat(ctcDetails.gratuity || 0)
+      );
+
       const payload = { 
         ...personal, 
         leaves: 12, 
         experiences, 
-        education: { ...education }
+        education: { ...education },
+        ...ctcDetails,
+        totalCtc: totalCtc.toString()
       };
       
       const res = await fetch('http://localhost:8081/api/employees/create', {
@@ -105,6 +126,14 @@ const HRDashboard = ({ user }) => {
         setPersonal({ name: '', email: '', department: '', position: '', startDate: '', phone: '', address: '' });
         setEducation({ degree: '', university: '', year: '', grade: '' });
         setExperiences([{ company: '', role: '', years: '', description: '' }]);
+        setCtcDetails({
+          basicSalary: '',
+          hra: '',
+          allowances: '',
+          bonuses: '',
+          pfContribution: '',
+          gratuity: ''
+        });
         setShowAddEmployee(false);
         setStep(1);
         setMsg('Employee added successfully!');
@@ -474,6 +503,69 @@ const HRDashboard = ({ user }) => {
 
               {step === 3 && (
                 <>
+                  <h4>CTC Details</h4>
+                  <div className="form-group">
+                    <label>Basic Salary *</label>
+                    <input
+                      type="number"
+                      value={ctcDetails.basicSalary}
+                      onChange={e => setCtcDetails({ ...ctcDetails, basicSalary: e.target.value })}
+                      placeholder="Enter basic salary"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>HRA *</label>
+                    <input
+                      type="number"
+                      value={ctcDetails.hra}
+                      onChange={e => setCtcDetails({ ...ctcDetails, hra: e.target.value })}
+                      placeholder="Enter HRA"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Allowances *</label>
+                    <input
+                      type="number"
+                      value={ctcDetails.allowances}
+                      onChange={e => setCtcDetails({ ...ctcDetails, allowances: e.target.value })}
+                      placeholder="Enter allowances"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Bonuses</label>
+                    <input
+                      type="number"
+                      value={ctcDetails.bonuses}
+                      onChange={e => setCtcDetails({ ...ctcDetails, bonuses: e.target.value })}
+                      placeholder="Enter bonuses"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>PF Contribution *</label>
+                    <input
+                      type="number"
+                      value={ctcDetails.pfContribution}
+                      onChange={e => setCtcDetails({ ...ctcDetails, pfContribution: e.target.value })}
+                      placeholder="Enter PF contribution"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Gratuity *</label>
+                    <input
+                      type="number"
+                      value={ctcDetails.gratuity}
+                      onChange={e => setCtcDetails({ ...ctcDetails, gratuity: e.target.value })}
+                      placeholder="Enter gratuity"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="divider" style={{ margin: '20px 0', borderTop: '1px solid #eee' }}></div>
+                  
                   <h4>Work Experience</h4>
                   {experiences.map((exp, index) => (
                     <div key={index} style={{ border: '1px solid #e1e8ed', padding: '15px', borderRadius: '8px', marginBottom: '15px' }}>
@@ -626,4 +718,4 @@ const HRDashboard = ({ user }) => {
   );
 };
 
-export default HRDashboard; 
+export default HRDashboard;

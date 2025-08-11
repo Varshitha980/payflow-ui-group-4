@@ -62,7 +62,7 @@ echo ========================================
 echo   Servers are starting up...
 echo ========================================
 echo.
-echo Backend:  http://localhost:8080
+echo Backend:  http://localhost:8081
 echo Frontend: http://localhost:3000
 echo.
 echo Default users:

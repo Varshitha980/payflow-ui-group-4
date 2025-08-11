@@ -200,7 +200,7 @@ const Summary = () => {
             <div className="stat-card">
               <div className="stat-icon">👥</div>
               <div className="stat-content">
-                <h3>{stats.teamSize}</h3>
+                <h3>{stats.totalEmployees}</h3>
                 <p>Team Size</p>
               </div>
             </div>
@@ -214,7 +214,7 @@ const Summary = () => {
             <div className="stat-card">
               <div className="stat-icon">📋</div>
               <div className="stat-content">
-                <h3>{stats.totalLeaves}</h3>
+                <h3>{stats.totalLeaveRequests}</h3>
                 <p>Total Leave Requests</p>
               </div>
             </div>
@@ -471,22 +471,30 @@ const Summary = () => {
                 </>
               ) : (
                 <>
-                  {chartData1.map((item, index) => (
-                    <div key={index} className="bar-group">
-                      <div className="bar-label">{item.label}</div>
-                      <div className="bar-container">
-                        <div 
-                          className="bar" 
-                          style={{ 
-                            width: `${(item.value / Math.max(...chartData1.map(d => d.value))) * 100}%`,
-                            backgroundColor: item.color
-                          }}
-                        >
-                          <span className="bar-value">{item.value}</span>
+                  {chartData1.map((item, index) => {
+                    // Calculate the maximum value for proper scaling
+                    const maxValue = Math.max(...chartData1.map(d => d.value));
+                    // Calculate height percentage based on the value relative to max
+                    const heightPercentage = (item.value / maxValue) * 100;
+                    
+                    return (
+                      <div key={index} className="bar-group">
+                        <div className="bar-label">{item.label}</div>
+                        <div className="bar-container">
+                          <div 
+                            className="bar" 
+                            style={{ 
+                              height: `${heightPercentage}%`,
+                              width: '40px',
+                              backgroundColor: item.color
+                            }}
+                          >
+                            <span className="bar-value">{item.value}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </>
               )}
             </div>
@@ -579,4 +587,4 @@ const Summary = () => {
   );
 };
 
-export default Summary; 
+export default Summary;

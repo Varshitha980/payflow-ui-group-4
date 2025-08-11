@@ -13,16 +13,14 @@ const Sidebar = ({ user }) => {
       return [
         { path: '/admin', icon: '🏠', label: 'Dashboard', sublabel: 'Home' },
         { path: '/admin/manage-users', icon: '👥', label: 'Manage Users', sublabel: 'HR & Managers' },
-        { path: '/admin/summary', icon: '📈', label: 'Summary', sublabel: 'Analytics & Charts' },
-        { path: '/admin/settings', icon: '⚙️', label: 'Settings', sublabel: 'System Config' }
+        { path: '/admin/summary', icon: '📈', label: 'Summary', sublabel: 'Analytics & Charts' }
       ];
     } else if (user?.role === 'HR') {
       return [
         { path: '/hr', icon: '🏠', label: 'Dashboard', sublabel: 'Home' },
         { path: '/hr/employees', icon: '👥', label: 'All Employees', sublabel: 'Employee List' },
         { path: '/hr/ctc', icon: '💰', label: 'CTC Management', sublabel: 'Salary Structure' },
-        { path: '/hr/payslips', icon: '📄', label: 'Payslip Management', sublabel: 'Generate Payslips' },
-        { path: '/hr/summary', icon: '📈', label: 'Summary', sublabel: 'Analytics & Charts' }
+        { path: '/hr/payslips', icon: '📄', label: 'Payslip Management', sublabel: 'Generate Payslips' }
       ];
     } else if (user?.role === 'MANAGER') {
       return [

@@ -216,53 +216,75 @@ const EmployeeList = () => {
                   </div>
                 </div>
 
-                {selectedEmployee.education && (
-                  <div className="detail-group">
-                    <h4>Education</h4>
-                    <div className="detail-row">
-                      <span className="detail-label">Degree:</span>
-                      <span className="detail-value">{selectedEmployee.education.degree || 'Not provided'}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">University:</span>
-                      <span className="detail-value">{selectedEmployee.education.university || 'Not provided'}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Year:</span>
-                      <span className="detail-value">{selectedEmployee.education.year || 'Not provided'}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Grade:</span>
-                      <span className="detail-value">{selectedEmployee.education.grade || 'Not provided'}</span>
-                    </div>
-                  </div>
-                )}
+                {(() => {
+                  try {
+                    const education = selectedEmployee.education ? JSON.parse(selectedEmployee.education) : null;
+                    if (education && (education.degree || education.university || education.year || education.grade)) {
+                      return (
+                        <div className="detail-group">
+                          <h4>Education</h4>
+                          <div className="detail-row">
+                            <span className="detail-label">Degree:</span>
+                            <span className="detail-value">{education.degree || 'Not provided'}</span>
+                          </div>
+                          <div className="detail-row">
+                            <span className="detail-label">University:</span>
+                            <span className="detail-value">{education.university || 'Not provided'}</span>
+                          </div>
+                          <div className="detail-row">
+                            <span className="detail-label">Year:</span>
+                            <span className="detail-value">{education.year || 'Not provided'}</span>
+                          </div>
+                          <div className="detail-row">
+                            <span className="detail-label">Grade:</span>
+                            <span className="detail-value">{education.grade || 'Not provided'}</span>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  } catch (error) {
+                    console.warn('Error parsing education:', error);
+                    return null;
+                  }
+                })()}
 
-                {selectedEmployee.experiences && selectedEmployee.experiences.length > 0 && (
-                  <div className="detail-group">
-                    <h4>Experience</h4>
-                    {selectedEmployee.experiences.map((exp, index) => (
-                      <div key={index} className="experience-item">
-                        <div className="detail-row">
-                          <span className="detail-label">Company:</span>
-                          <span className="detail-value">{exp.company || 'Not provided'}</span>
+                {(() => {
+                  try {
+                    const experiences = selectedEmployee.experiences ? JSON.parse(selectedEmployee.experiences) : [];
+                    if (experiences && experiences.length > 0) {
+                      return (
+                        <div className="detail-group">
+                          <h4>Experience</h4>
+                          {experiences.map((exp, index) => (
+                            <div key={index} className="experience-item">
+                              <div className="detail-row">
+                                <span className="detail-label">Company:</span>
+                                <span className="detail-value">{exp.company || 'Not provided'}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="detail-label">Role:</span>
+                                <span className="detail-value">{exp.role || 'Not provided'}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="detail-label">Years:</span>
+                                <span className="detail-value">{exp.years || 'Not provided'}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="detail-label">Description:</span>
+                                <span className="detail-value">{exp.description || 'Not provided'}</span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                        <div className="detail-row">
-                          <span className="detail-label">Role:</span>
-                          <span className="detail-value">{exp.role || 'Not provided'}</span>
-                        </div>
-                        <div className="detail-row">
-                          <span className="detail-label">Years:</span>
-                          <span className="detail-value">{exp.years || 'Not provided'}</span>
-                        </div>
-                        <div className="detail-row">
-                          <span className="detail-label">Description:</span>
-                          <span className="detail-value">{exp.description || 'Not provided'}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      );
+                    }
+                    return null;
+                  } catch (error) {
+                    console.warn('Error parsing experiences:', error);
+                    return null;
+                  }
+                })()}
               </div>
             </div>
             <div className="modal-footer">

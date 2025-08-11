@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './ModernDashboardStyles.css';
+import './ModernDashboardStyles.css'; // Assuming this CSS file exists
 
 const CTCManagement = ({ user }) => {
   const [employees, setEmployees] = useState([]);
@@ -10,7 +10,7 @@ const CTCManagement = ({ user }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [selectedCTC, setSelectedCTC] = useState(null);
-  
+
   // Form state for adding/editing CTC
   const [formData, setFormData] = useState({
     effectiveFrom: '',
@@ -20,7 +20,9 @@ const CTCManagement = ({ user }) => {
     bonuses: '',
     pfContribution: '',
     gratuity: '',
-    totalCTC: ''
+    totalCTC: '',
+    da: '',
+    specialAllowance: ''
   });
 
   const isHR = user?.role === 'HR' || user?.role === 'ADMIN';
@@ -32,12 +34,14 @@ const CTCManagement = ({ user }) => {
     } else if (isEmployee) {
       loadEmployeeCTC();
     }
-  }, [user]);
+  }, [user]); // Depend on 'user' to re-fetch when user changes
 
+  // Function to load employees for HR/Admin
   const loadEmployees = async () => {
     try {
       const response = await fetch('http://localhost:8081/api/employees');
       const data = await response.json();
+      // Filter for employees with 'EMPLOYEE' role
       setEmployees(data.filter(emp => emp.role === 'EMPLOYEE'));
     } catch (error) {
       console.error('Error loading employees:', error);
@@ -47,12 +51,14 @@ const CTCManagement = ({ user }) => {
     }
   };
 
+  // Function to load CTC history for the logged-in employee
   const loadEmployeeCTC = async () => {
     try {
       const response = await fetch(`http://localhost:8081/api/ctc/employee/${user.id}/history`);
       const data = await response.json();
       if (data.success) {
-        setCtcHistory(data.data);
+        // Sort CTC history by effectiveFrom date in descending order
+        setCtcHistory(data.data.sort((a, b) => new Date(b.effectiveFrom) - new Date(a.effectiveFrom)));
       }
     } catch (error) {
       console.error('Error loading CTC:', error);
@@ -62,12 +68,14 @@ const CTCManagement = ({ user }) => {
     }
   };
 
+  // Function to load CTC history for a specific employee (used by HR)
   const loadCTCHistory = async (employeeId) => {
     try {
       const response = await fetch(`http://localhost:8081/api/ctc/employee/${employeeId}/history`);
       const data = await response.json();
       if (data.success) {
-        setCtcHistory(data.data);
+        // Sort CTC history by effectiveFrom date in descending order
+        setCtcHistory(data.data.sort((a, b) => new Date(b.effectiveFrom) - new Date(a.effectiveFrom)));
       }
     } catch (error) {
       console.error('Error loading CTC history:', error);
@@ -75,13 +83,15 @@ const CTCManagement = ({ user }) => {
     }
   };
 
+  // Handler for selecting an employee from the list
   const handleEmployeeSelect = (employee) => {
     setSelectedEmployee(employee);
     loadCTCHistory(employee.id);
-    setShowAddForm(false);
-    setShowEditForm(false);
+    setShowAddForm(false); // Close add form if open
+    setShowEditForm(false); // Close edit form if open
   };
 
+  // Handler for adding a new CTC record
   const handleAddCTC = async (e) => {
     e.preventDefault();
     if (!selectedEmployee) {
@@ -89,22 +99,40 @@ const CTCManagement = ({ user }) => {
       return;
     }
 
+    // Prepare data, converting date string to a Date object or ISO string
+    const ctcDataToSend = {
+      employeeId: selectedEmployee.id,
+      // Explicitly parse numeric fields to numbers
+      basicSalary: parseFloat(formData.basicSalary) || 0,
+      hra: parseFloat(formData.hra) || 0,
+      allowances: parseFloat(formData.allowances) || 0,
+      bonuses: parseFloat(formData.bonuses) || 0,
+      pfContribution: parseFloat(formData.pfContribution) || 0,
+      gratuity: parseFloat(formData.gratuity) || 0,
+      totalCTC: parseFloat(formData.totalCTC) || 0,
+      da: parseFloat(formData.da) || 0,
+      specialAllowance: parseFloat(formData.specialAllowance) || 0,
+      // Ensure effectiveFrom is sent in a format the backend expects.
+      // Converting to ISO string is a common and safe practice.
+      effectiveFrom: formData.effectiveFrom ? new Date(formData.effectiveFrom).toISOString().split('T')[0] : ''
+    };
+
     try {
+      // Use PUT method as required by the backend
       const response = await fetch('http://localhost:8081/api/ctc/add', {
-        method: 'POST',
+        method: 'PUT', // Using PUT as required by the backend endpoint
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          employeeId: selectedEmployee.id,
-          ...formData
-        })
+        body: JSON.stringify(ctcDataToSend) // Send the prepared data
       });
+
       const data = await response.json();
-      
-      if (data.success) {
+
+      // Check if the HTTP response was successful (status in 200-299 range)
+      if (response.ok && data.success) {
         setMessage('CTC added successfully');
         setShowAddForm(false);
         resetForm();
-        loadCTCHistory(selectedEmployee.id);
+        loadCTCHistory(selectedEmployee.id); // Reload history to show new entry
       } else {
         setMessage(data.message || 'Error adding CTC');
       }
@@ -114,6 +142,7 @@ const CTCManagement = ({ user }) => {
     }
   };
 
+  // Handler for editing an existing CTC record
   const handleEditCTC = async (e) => {
     e.preventDefault();
     if (!selectedCTC || !selectedEmployee) {
@@ -121,22 +150,36 @@ const CTCManagement = ({ user }) => {
       return;
     }
 
+    // Prepare data for update, including the ctcId for identification
+    const ctcDataToUpdate = {
+      ctcId: selectedCTC.ctcId, // Ensure the CTC ID is sent for update
+      employeeId: selectedEmployee.id,
+      // Explicitly parse numeric fields to numbers
+      basicSalary: parseFloat(formData.basicSalary) || 0,
+      hra: parseFloat(formData.hra) || 0,
+      allowances: parseFloat(formData.allowances) || 0,
+      bonuses: parseFloat(formData.bonuses) || 0,
+      pfContribution: parseFloat(formData.pfContribution) || 0,
+      gratuity: parseFloat(formData.gratuity) || 0,
+      totalCTC: parseFloat(formData.totalCTC) || 0,
+      da: parseFloat(formData.da) || 0,
+      specialAllowance: parseFloat(formData.specialAllowance) || 0,
+      effectiveFrom: formData.effectiveFrom ? new Date(formData.effectiveFrom).toISOString().split('T')[0] : ''
+    };
+
     try {
       const response = await fetch('http://localhost:8081/api/ctc/update', {
-        method: 'PUT',
+        method: 'PUT', // This is correct for updating
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          employeeId: selectedEmployee.id,
-          ...formData
-        })
+        body: JSON.stringify(ctcDataToUpdate) // Send the prepared data for update
       });
       const data = await response.json();
-      
-      if (data.success) {
+
+      if (response.ok && data.success) {
         setMessage('CTC updated successfully');
         setShowEditForm(false);
         resetForm();
-        loadCTCHistory(selectedEmployee.id);
+        loadCTCHistory(selectedEmployee.id); // Reload history to show updated entry
       } else {
         setMessage(data.message || 'Error updating CTC');
       }
@@ -146,21 +189,26 @@ const CTCManagement = ({ user }) => {
     }
   };
 
+  // Handler for opening the edit form and populating it with selected CTC data
   const handleEditClick = (ctc) => {
     setSelectedCTC(ctc);
     setFormData({
-      effectiveFrom: ctc.effectiveFrom,
+      effectiveFrom: ctc.effectiveFrom.split('T')[0], // Format date for input type="date"
       basicSalary: ctc.basicSalary.toString(),
       hra: ctc.hra.toString(),
       allowances: ctc.allowances.toString(),
       bonuses: ctc.bonuses.toString(),
       pfContribution: ctc.pfContribution.toString(),
       gratuity: ctc.gratuity.toString(),
-      totalCTC: ctc.totalCTC.toString()
+      totalCTC: ctc.totalCTC.toString(),
+      da: ctc.da ? ctc.da.toString() : '0',
+      specialAllowance: ctc.specialAllowance ? ctc.specialAllowance.toString() : '0'
     });
     setShowEditForm(true);
+    setShowAddForm(false); // Close add form if open
   };
 
+  // Resets the form data and selected CTC
   const resetForm = () => {
     setFormData({
       effectiveFrom: '',
@@ -170,11 +218,14 @@ const CTCManagement = ({ user }) => {
       bonuses: '',
       pfContribution: '',
       gratuity: '',
-      totalCTC: ''
+      totalCTC: '',
+      da: '',
+      specialAllowance: ''
     });
     setSelectedCTC(null);
   };
 
+  // Calculates total CTC based on form inputs
   const calculateTotalCTC = () => {
     const basic = parseFloat(formData.basicSalary) || 0;
     const hra = parseFloat(formData.hra) || 0;
@@ -182,12 +233,14 @@ const CTCManagement = ({ user }) => {
     const bonuses = parseFloat(formData.bonuses) || 0;
     const pf = parseFloat(formData.pfContribution) || 0;
     const gratuity = parseFloat(formData.gratuity) || 0;
-    
-    const total = basic + hra + allowances + bonuses + pf + gratuity;
+    const da = parseFloat(formData.da) || 0;
+    const specialAllowance = parseFloat(formData.specialAllowance) || 0;
+
+    const total = basic + hra + allowances + bonuses + pf + gratuity + da + specialAllowance;
     setFormData(prev => ({ ...prev, totalCTC: total.toString() }));
   };
 
-  // Calculate total when form data changes
+  // Effect to recalculate total CTC whenever relevant form fields change
   useEffect(() => {
     if (showAddForm || showEditForm) {
       calculateTotalCTC();
@@ -205,6 +258,7 @@ const CTCManagement = ({ user }) => {
         <p>{isHR ? 'Manage employee CTC and compensation details' : 'View your CTC information'}</p>
       </div>
 
+      {/* Message display for success/error */}
       {message && (
         <div className={`alert ${message.includes('Error') ? 'alert-error' : 'alert-success'}`}>
           {message}
@@ -212,9 +266,9 @@ const CTCManagement = ({ user }) => {
       )}
 
       {isHR ? (
-        // HR Dashboard
+        // HR Dashboard Layout
         <div className="ctc-management-grid">
-          {/* Employee List */}
+          {/* Employee List Section */}
           <div className="employee-list-section">
             <h2>Employees</h2>
             <div className="employee-list">
@@ -224,6 +278,9 @@ const CTCManagement = ({ user }) => {
                   className={`employee-card ${selectedEmployee?.id === employee.id ? 'selected' : ''}`}
                   onClick={() => handleEmployeeSelect(employee)}
                 >
+                  <div className="employee-avatar">
+                      {employee.name ? employee.name.charAt(0) : 'U'}
+                    </div>
                   <div className="employee-info">
                     <h3>{employee.name}</h3>
                     <p>{employee.position}</p>
@@ -234,20 +291,20 @@ const CTCManagement = ({ user }) => {
             </div>
           </div>
 
-          {/* CTC Details */}
+          {/* CTC Details Section */}
           <div className="ctc-details-section">
             {selectedEmployee ? (
               <>
                 <div className="ctc-header">
                   <h2>CTC - {selectedEmployee.name}</h2>
                   <div className="ctc-actions">
-                    <button className="btn btn-primary" onClick={() => setShowAddForm(true)}>
+                    <button className="btn btn-primary" onClick={() => { setShowAddForm(true); setShowEditForm(false); resetForm(); }}>
                       Add New CTC
                     </button>
                   </div>
                 </div>
 
-                {/* CTC History */}
+                {/* CTC History Display */}
                 <div className="ctc-history">
                   <h3>CTC History</h3>
                   {ctcHistory.length > 0 ? (
@@ -289,7 +346,7 @@ const CTCManagement = ({ user }) => {
                             </div>
                           </div>
                           <div className="ctc-actions">
-                            <button 
+                            <button
                               className="btn btn-small btn-secondary"
                               onClick={() => handleEditClick(ctc)}
                             >
@@ -305,6 +362,7 @@ const CTCManagement = ({ user }) => {
                 </div>
               </>
             ) : (
+              // Prompt to select an employee
               <div className="no-selection">
                 <h2>Select an Employee</h2>
                 <p>Choose an employee from the list to view and manage their CTC.</p>
@@ -313,7 +371,7 @@ const CTCManagement = ({ user }) => {
           </div>
         </div>
       ) : (
-        // Employee Dashboard
+        // Employee Dashboard Layout
         <div className="employee-ctc-section">
           <h2>Your CTC Information</h2>
           {ctcHistory.length > 0 ? (
@@ -376,13 +434,13 @@ const CTCManagement = ({ user }) => {
         </div>
       )}
 
-      {/* Add CTC Form */}
+      {/* Add CTC Form Modal */}
       {showAddForm && (
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
               <h3>Add New CTC</h3>
-              <button className="close-btn" onClick={() => setShowAddForm(false)}>×</button>
+              <button className="close-btn" onClick={() => { setShowAddForm(false); resetForm(); }}>×</button>
             </div>
             <form onSubmit={handleAddCTC} className="ctc-form">
               <div className="form-group">
@@ -459,7 +517,7 @@ const CTCManagement = ({ user }) => {
               </div>
               <div className="form-actions">
                 <button type="submit" className="btn btn-primary">Add CTC</button>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddForm(false)}>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowAddForm(false); resetForm(); }}>
                   Cancel
                 </button>
               </div>
@@ -468,13 +526,13 @@ const CTCManagement = ({ user }) => {
         </div>
       )}
 
-      {/* Edit CTC Form */}
+      {/* Edit CTC Form Modal */}
       {showEditForm && (
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
               <h3>Edit CTC</h3>
-              <button className="close-btn" onClick={() => setShowEditForm(false)}>×</button>
+              <button className="close-btn" onClick={() => { setShowEditForm(false); resetForm(); }}>×</button>
             </div>
             <form onSubmit={handleEditCTC} className="ctc-form">
               <div className="form-group">
@@ -541,6 +599,22 @@ const CTCManagement = ({ user }) => {
                 />
               </div>
               <div className="form-group">
+                <label>Dearness Allowance:</label>
+                <input
+                  type="number"
+                  value={formData.da}
+                  onChange={(e) => setFormData(prev => ({ ...prev, da: e.target.value }))}
+                />
+              </div>
+              <div className="form-group">
+                <label>Special Allowance:</label>
+                <input
+                  type="number"
+                  value={formData.specialAllowance}
+                  onChange={(e) => setFormData(prev => ({ ...prev, specialAllowance: e.target.value }))}
+                />
+              </div>
+              <div className="form-group">
                 <label>Total CTC:</label>
                 <input
                   type="number"
@@ -551,7 +625,7 @@ const CTCManagement = ({ user }) => {
               </div>
               <div className="form-actions">
                 <button type="submit" className="btn btn-primary">Update CTC</button>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowEditForm(false)}>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowEditForm(false); resetForm(); }}>
                   Cancel
                 </button>
               </div>
@@ -563,4 +637,4 @@ const CTCManagement = ({ user }) => {
   );
 };
 
-export default CTCManagement; 
+export default CTCManagement;
