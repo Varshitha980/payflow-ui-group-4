@@ -66,7 +66,20 @@ const ResetPasswordPage = ({ id, username, onReset }) => {
       onReset();
     } catch (error) {
       console.error('Password reset failed:', error);
-      setErrorMsg(error?.response?.data || 'Failed to reset password.');
+      let errorMessage = 'Failed to reset password. Please try again.';
+
+      // Safely check the API error response and extract a string message
+      if (error.response && error.response.data) {
+        // Check for a specific 'error' key, which your backend uses
+        if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        } else if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      }
+      setErrorMsg(errorMessage);
     }
   };
 
